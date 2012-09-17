@@ -18,7 +18,7 @@ getConfig(function(cfg) {
           table.push([
             issues[i].key,
             '<'+issues[i].fields.reporter.name+'>',
-            formatPrio(issues[i].fields.priority.name),
+            {data: formatPrio(issues[i].fields.priority.name), right: true},
             issues[i].fields.summary
           ]);
         }
@@ -30,30 +30,31 @@ getConfig(function(cfg) {
 function formatTable(cols) {
   var rowLengths = [];
   var output = '';
+
   for (var i=0; i<cols.length; i++) {
     for (var j=0; j<cols[i].length; j++) {
       if (!rowLengths[j]) rowLengths[j] = 0;
-      if (cols[i][j].length > rowLengths[j]) rowLengths[j] = cols[i][j].length;
+      if (typeof cols[i][j] == 'string') cols[i][j] = {data:cols[i][j]};
+      if (cols[i][j].data.length > rowLengths[j]) {
+        rowLengths[j] = cols[i][j].data.length;
+      }
     }
   }
 
   for (var i=0; i<cols.length; i++) {
     var col = ' ';
     for (var j=0; j<cols[i].length; j++) {
-      
-      if (j != cols[i].length-1) {
-        if (cols[i][j].replace(/(\s|!)/, '') == '') {
-          col += pad(cols[i][j], rowLengths[j], {right: true});
-        } else {
-          col += pad(cols[i][j], rowLengths[j]);
-        }
-        col += ' ';
-      } else {
-        col += cols[i][j];
+      if (j == cols[i].length-1) {
+        col += cols[i][j].data;
+        continue;
       }
+      col += pad(
+        cols[i][j].data,
+        rowLengths[j],
+        {right: cols[i][j].right}
+      ) + ' ';
     }
-    col = truncate(col, 79);
-    output += col+'\n';
+    output += truncate(col, 79)+'\n';
   }
 
   return output;
@@ -61,14 +62,11 @@ function formatTable(cols) {
   function pad(str, len, cfg) {
     cfg = cfg || {};
     cfg.character = cfg.character || ' ';
-    cfg.right = cfg.right || false;
-
     if (cfg.right) {
       while(str.length < len) str = cfg.character + str;
     } else {
       while(str.length < len) str += cfg.character;
     }
-
     return str;
   }
 

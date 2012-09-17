@@ -22,7 +22,7 @@ $ jilla
 ```bash
 $ jilla ls
 
-  WDSERVICE-78 <jgruber>  !  LessLinter
+  WDSERVICE-78 <jgruber>   ! LessLinter
   PS-656       <jgruber>  !! Graphite installieren
   PS-480       <pkostoff> !! Trailing stops
 
