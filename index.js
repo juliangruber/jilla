@@ -6,7 +6,7 @@ getConfig(function(cfg) {
   var cmd = process.argv[2];
   if (cmd == 'ls') {
     request
-      .get(cfg.url+'rest/api/2/search?jql=assignee='+cfg.user)
+      .get(cfg.url+'rest/api/2/search?jql=assignee='+cfg.user+'+AND+status+in+(Open,"In+Progress",Reopened)+order+by+due+ASC,+priority+DESC')
       .set('Content-Type', 'application/json')
       .auth(cfg.user, cfg.password)
       .end(function(res) {
