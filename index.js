@@ -23,7 +23,6 @@ getConfig(function(cfg) {
           ]);
         }
         console.log(formatTable(table));
-        console.log('');
       });
   }
 });
@@ -43,7 +42,11 @@ function formatTable(cols) {
     for (var j=0; j<cols[i].length; j++) {
       
       if (j != cols[i].length-1) {
-        col += pad(cols[i][j], rowLengths[j]);
+        if (cols[i][j].replace(/(\s|!)/, '') == '') {
+          col += pad(cols[i][j], rowLengths[j], {right: true});
+        } else {
+          col += pad(cols[i][j], rowLengths[j]);
+        }
         col += ' ';
       } else {
         col += cols[i][j];
@@ -55,25 +58,33 @@ function formatTable(cols) {
 
   return output;
 
-  function pad(str, len, character) {
-    character = character || ' ';
-    while(str.length < len) str += character;
+  function pad(str, len, cfg) {
+    cfg = cfg || {};
+    cfg.character = cfg.character || ' ';
+    cfg.right = cfg.right || false;
+
+    if (cfg.right) {
+      while(str.length < len) str = cfg.character + str;
+    } else {
+      while(str.length < len) str += cfg.character;
+    }
+
     return str;
   }
 
   function truncate(str, len) {
     if (str.length <= len) return str;
     while (str.length > len-3) str = str.slice(0, -1);
-    str = pad(str, len, '.');
+    str = pad(str, len, {character:'.'});
     return str;
   }
 }
 
 function formatPrio(name) {
-  if (name == 'Trivial')  return '    ';
-  if (name == 'Minor')    return '   !';
-  if (name == 'Major')    return '  !!';
-  if (name == 'Critical') return ' !!!';
+  if (name == 'Trivial')  return '';
+  if (name == 'Minor')    return '!';
+  if (name == 'Major')    return '!!';
+  if (name == 'Critical') return '!!!';
   if (name == 'Blocker')  return '!!!!';
 }
 
