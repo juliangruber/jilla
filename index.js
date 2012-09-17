@@ -11,7 +11,8 @@ load(function(_cfg, _db) {
   var cmd = process.argv[2];
   if (cmd == 'ls')    ls();
   if (cmd == 'start') start(process.argv[3]);
-  if (cmd == 'stop')  stop(process.argv[3]);
+  if (cmd == 'stop')  stop(process.argv[3], process.argv[4] == '--log');
+  if (cmd == 'log')   log(process.argv[3], process.argv[4]);
 });
 
 function ls() {
@@ -52,7 +53,7 @@ function start(issue) {
   ;
 }
 
-function stop(issue) {
+function stop(issue, logAlso) {
   request
     .post(cfg.url+'rest/api/2/issue/'+issue+'/transitions')
     .send({transition: {id: 301}})
@@ -62,10 +63,30 @@ function stop(issue) {
         '\n'+res.body.errorMessages.join('\n\n')+'\n'
       );
 
+      // This can only happen when the Issue was started outside jilla
+      if (!db.get(issue)) return;
       // TODO: less exact time display
-      console.log('\n  Time spent: '+ms(Date.now()-db.get(issue))+'.\n');
+      var duration = Date.now() - db.get(issue);
+      if (duration < 60000) duration = 60000;
+      duration = ms(duration);
+      console.log('\n  Time spent: '+duration+'.\n');
+      if (logAlso) log(issue, duration);
     })
   ;
+}
+
+function log(issue, time) {
+  time = Math.floor(ms(time)/1000);
+  if (time < 60) time = 60;
+  request
+    .post(cfg.url+'rest/api/2/issue/'+issue+'/worklog')
+    .send({timeSpentSeconds: time})
+    .auth(cfg.user, cfg.password)
+    .end(function(res) {
+      if (!res.ok) return console.log(
+        '\n'+res.body.errorMessages.join('\n\n')+'\n'
+      );
+    })
 }
 
 function formatTable(cols) {
