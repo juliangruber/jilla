@@ -1,31 +1,72 @@
 var fs = require('fs');
 var readline = require('readline');
 var request = require('superagent');
+var ms = require('ms');
 
-getConfig(function(cfg) {
+var cfg, db;
+
+load(function(_cfg, _db) {
+  cfg = _cfg;
+  db = _db;
   var cmd = process.argv[2];
-  if (cmd == 'ls') {
-    request
-      .get(cfg.url+'rest/api/2/search?jql=assignee='+cfg.user+'+AND+status+in+(Open,"In+Progress",Reopened)+order+by+due+ASC,+priority+DESC')
-      .set('Content-Type', 'application/json')
-      .auth(cfg.user, cfg.password)
-      .end(function(res) {
-        if (!res.ok) throw res.text;
-        var issues = res.body.issues;
-        console.log('');
-        var table = [];
-        for (var i=0; i<issues.length; i++) {
-          table.push([
-            issues[i].key,
-            '<'+issues[i].fields.reporter.name+'>',
-            {data: formatPrio(issues[i].fields.priority.name), right: true},
-            issues[i].fields.summary
-          ]);
-        }
-        console.log(formatTable(table));
-      });
-  }
+  if (cmd == 'ls')    ls();
+  if (cmd == 'start') start(process.argv[3]);
+  if (cmd == 'stop')  stop(process.argv[3]);
 });
+
+function ls() {
+  request
+    .get(cfg.url+'rest/api/2/search?jql=assignee='+cfg.user+'+AND+status+in+(Open,"In+Progress",Reopened)+order+by+due+ASC,+priority+DESC')
+    .set('Content-Type', 'application/json')
+    .auth(cfg.user, cfg.password)
+    .end(function(res) {
+      if (!res.ok) throw res.text;
+      var issues = res.body.issues;
+      console.log('');
+      var table = [];
+      for (var i=0; i<issues.length; i++) {
+        table.push([
+          issues[i].key,
+          '<'+issues[i].fields.reporter.name+'>',
+          {data: formatPrio(issues[i].fields.priority.name), right: true},
+          issues[i].fields.summary
+        ]);
+      }
+      console.log(formatTable(table));
+    })
+  ;
+}
+
+function start(issue) {
+  request
+    .post(cfg.url+'rest/api/2/issue/'+issue+'/transitions')
+    .send({transition: {id: 4}})
+    .auth(cfg.user, cfg.password)
+    .end(function(res) {
+      if (!res.ok) return console.log(
+        '\n'+res.body.errorMessages.join('\n\n')+'\n'
+      );
+
+      db.set(issue, Date.now());
+    })
+  ;
+}
+
+function stop(issue) {
+  request
+    .post(cfg.url+'rest/api/2/issue/'+issue+'/transitions')
+    .send({transition: {id: 301}})
+    .auth(cfg.user, cfg.password)
+    .end(function(res) {
+      if (!res.ok) return console.log(
+        '\n'+res.body.errorMessages.join('\n\n')+'\n'
+      );
+
+      // TODO: less exact time display
+      console.log('\n  Time spent: '+ms(Date.now()-db.get(issue))+'.\n');
+    })
+  ;
+}
 
 function formatTable(cols) {
   var rowLengths = [];
@@ -86,15 +127,16 @@ function formatPrio(name) {
   if (name == 'Blocker')  return '!!!!';
 }
 
-function getConfig(cb) {
-  var cfg;
-
+function load(cb) {
   var home = (process.platform == 'win32') ? 'USERPROFILE' : 'HOME';
-  var cfgPath = process.env[home]+'/.jilla.json';
-  try {
-    cfg = require(cfgPath);
-    cb(cfg);
-  } catch(err) {
+  var jillaPath = process.env[home]+'/.jilla/';
+  var cfgPath = jillaPath+'cfg.json';
+  var dbPath = jillaPath+'db.json';
+
+  if (fs.existsSync(cfgPath) && fs.existsSync(dbPath)) {
+    cb(require(cfgPath), Db(dbPath));
+  } else {
+    fs.mkdirSync(jillaPath);
     askFor(['Jira Url', 'Username', 'Password'], function(answers) {
       cfg = {
         url     : answers['Jira Url'],
@@ -102,13 +144,31 @@ function getConfig(cb) {
         password: answers['Password']
       };
       if (cfg.url[cfg.url.length-1] != '/') cfg.url += '/';
-      // TODO: Save password in a save way
+      // TODO: Store password securely
       fs.writeFileSync(cfgPath, JSON.stringify(cfg));
-      cb(cfg);
+      fs.writeFileSync(dbPath, JSON.stringify({}));
+      cb(cfg, Db(dbPath));
     });
   }
 }
 
+function Db(path) {
+  return new Database(path);
+}
+
+function Database(path) {
+  this.path = path;
+  this.db = require(path);
+}
+
+Database.prototype.get = function(key) {
+  return this.db[key];
+}
+
+Database.prototype.set = function(key, value) {
+  this.db[key] = value;
+  fs.writeFileSync(this.path, JSON.stringify(this.db));
+}
 
 function askFor(questions, cb) {
   var rl = readline.createInterface({

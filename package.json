@@ -2,6 +2,7 @@
     "name": "jilla",
     "version": "0.0.1",
     "dependencies": {
-        "superagent": "*"
+        "superagent": "*",
+        "ms": "*"
     }
 }

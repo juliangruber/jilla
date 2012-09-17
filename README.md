@@ -22,9 +22,9 @@ $ jilla
 ```bash
 $ jilla ls
 
-  WDSERVICE-78 <jgruber>   ! LessLinter
+  WDSERVICE-78 <jgruber>  !! LessLinter
   PS-656       <jgruber>  !! Graphite installieren
-  PS-480       <pkostoff> !! Trailing stops
+  PS-480       <pkostoff>  ! Trailing stops
 
 ```
 
@@ -48,4 +48,11 @@ $ jilla stop PS-656 --log
 
   Time logged: 2h 3m.
   
+```
+
+```bash
+$ jilla running
+
+  WDSERVICE-78 <jgruber>   ! LessLinter
+
 ```
