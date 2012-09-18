@@ -19,7 +19,7 @@ Usage
 ```bash
 $ jilla
   
-  JIRA URL:
+  JIRA URL: https://jira.atlassian.com/
   Username:
   Password:
   
