@@ -36,9 +36,9 @@ $ jilla start PS-656
 ```bash
 $ jilla stop  PS-656
 
-  Time spent: 2.5 hours
+  Time spent: 2h 30m
 
-$ jilla log PS-656 2.5h
+$ jilla log PS-656 2h 30m
 ```
 
 or
@@ -46,14 +46,14 @@ or
 ```bash
 $ jilla stop PS-656 --log
 
-  Time logged: 2.5 hours
+  Time spent: 2h 30m
   
 ```
 
 ```bash
 $ jilla running
 
-  WDSERVICE-78 2.5 hours
-  PS-656       10 minutes
+  WDSERVICE-78 2h 30m
+  PS-656       10m
 
 ```

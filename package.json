@@ -3,6 +3,9 @@
     "version": "0.0.1",
     "dependencies": {
         "superagent": "*",
-        "ms": "*"
+        "span": "*"
+    },
+    "bin": {
+        "jilla": "./bin/jilla"
     }
 }

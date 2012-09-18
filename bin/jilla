@@ -1,8 +1,10 @@
+#!/usr/bin/env node
+
 var fs = require('fs');
 var readline = require('readline');
 var request = require('superagent');
-var ms = require('ms');
-var Db = require('./lib/db');
+var span = require('span');
+var Db = require('../lib/db');
 
 var cfg, db;
 
@@ -13,7 +15,7 @@ load(function(_cfg, _db) {
   if (cmd == 'ls')      ls();
   if (cmd == 'start')   start(process.argv[3]);
   if (cmd == 'stop')    stop(process.argv[3], process.argv[4] == '--log');
-  if (cmd == 'log')     log(process.argv[3], process.argv[4]);
+  if (cmd == 'log')     log(process.argv[3], process.argv.splice(4).join(''));
   if (cmd == 'running') running();
 });
 
@@ -70,7 +72,7 @@ function stop(issue, logAlso) {
       // TODO: less exact time display
       var duration = Date.now() - db.get(issue);
       if (duration < 60000) duration = 60000;
-      duration = ms(duration);
+      duration = span(duration);
       console.log('\n  Time spent: '+duration+'.\n');
       db.del(issue);
       if (logAlso) log(issue, duration);
@@ -79,7 +81,7 @@ function stop(issue, logAlso) {
 }
 
 function log(issue, time) {
-  time = Math.floor(ms(time)/1000);
+  time = Math.floor(span(time)/1000);
   if (time < 60) time = 60;
   request
     .post(cfg.url+'rest/api/2/issue/'+issue+'/worklog')
@@ -101,7 +103,7 @@ function running() {
   for (var issue in issues) {
     table.push([
       issue,
-      ms(Date.now()-issues[issue])
+      span(Date.now()-issues[issue])
     ]);
   }
   console.log(formatTable(table));
