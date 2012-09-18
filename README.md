@@ -3,6 +3,15 @@ jilla
 
 **jilla** is a *Jira* client for lazy people.
 
+Installation
+------------
+
+Install [node.js](http://nodejs.org/). Then, in your shell:
+
+```bash
+$ npm install -g jilla
+```
+
 Usage
 -----
 
