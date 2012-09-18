@@ -68,7 +68,10 @@ function stop(issue, logAlso) {
       );
 
       // This can only happen when the Issue was started outside jilla
-      if (!db.get(issue)) return;
+      if (!db.get(issue)) {
+        if (logAlso) return console.error('Automatic logging only works for issues started from jilla');
+        return;
+      }
       // TODO: less exact time display
       var duration = Date.now() - db.get(issue);
       if (duration < 60000) duration = 60000;
