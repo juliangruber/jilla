@@ -27,7 +27,6 @@ function ls() {
     .end(function(res) {
       if (!res.ok) throw res.text;
       var issues = res.body.issues;
-      console.log('');
       var table = [];
       for (var i=0; i<issues.length; i++) {
         table.push([
@@ -49,7 +48,7 @@ function start(issue) {
     .auth(cfg.user, cfg.password)
     .end(function(res) {
       if (!res.ok) return console.log(
-        '\n'+res.body.errorMessages.join('\n\n')+'\n'
+        res.body.errorMessages.join('\n')
       );
 
       db.set(issue, Date.now());
@@ -64,7 +63,7 @@ function stop(issue, logAlso) {
     .auth(cfg.user, cfg.password)
     .end(function(res) {
       if (!res.ok) return console.log(
-        '\n'+res.body.errorMessages.join('\n\n')+'\n'
+        res.body.errorMessages.join('\n')
       );
 
       // This can only happen when the Issue was started outside jilla
@@ -73,7 +72,7 @@ function stop(issue, logAlso) {
       var duration = Date.now() - db.get(issue);
       if (duration < 60000) duration = 60000;
       duration = span(duration);
-      console.log('\n  Time spent: '+duration+'.\n');
+      console.log('Time spent: '+duration+'.');
       db.del(issue);
       if (logAlso) log(issue, duration);
     })
@@ -89,7 +88,7 @@ function log(issue, time) {
     .auth(cfg.user, cfg.password)
     .end(function(res) {
       if (!res.ok) return console.log(
-        '\n'+res.body.errorMessages.join('\n\n')+'\n'
+        res.body.errorMessages.join('\n')
       );
     })
   ;
@@ -98,7 +97,6 @@ function log(issue, time) {
 function running() {
   var issues = db.get();
   if (JSON.stringify(issues) == '{}') return;
-  console.log('');
   var table = [];
   for (var issue in issues) {
     table.push([
@@ -124,7 +122,7 @@ function formatTable(cols) {
   }
 
   for (var i=0; i<cols.length; i++) {
-    var col = ' ';
+    var col = '';
     for (var j=0; j<cols[i].length; j++) {
       if (j == cols[i].length-1) {
         col += cols[i][j].data;
@@ -136,7 +134,8 @@ function formatTable(cols) {
         {right: cols[i][j].right}
       ) + ' ';
     }
-    output += truncate(col, 79)+'\n';
+    output += truncate(col, 79);
+    if (i < cols.length-1) output += '\n';
   }
 
   return output;
@@ -178,9 +177,8 @@ function load(cb) {
     cb(require(cfgPath), Db(dbPath));
   } else {
     if (!fs.existsSync(jillaPath)) fs.mkdirSync(jillaPath);
-    console.log('');
     askFor(['Jira Url', 'Username', 'Password'], function(answers) {
-      console.log('\nGood to go!\n');
+      console.log('Good to go!');
       cfg = {
         url     : answers['Jira Url'],
         user    : answers['Username'],
