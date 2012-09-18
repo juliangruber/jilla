@@ -76,7 +76,7 @@ function stop(issue, logAlso) {
       var duration = Date.now() - db.get(issue);
       if (duration < 60000) duration = 60000;
       duration = span(duration);
-      console.log('Time spent: '+duration+'.');
+      console.log('Time spent: '+duration);
       db.del(issue);
       if (logAlso) log(issue, duration);
     })
