@@ -38,7 +38,7 @@ $ jilla stop  PS-656
 
   Time spent: 2.5 hours
 
-$ jilla log   PS-656 2.5h
+$ jilla log PS-656 2.5h
 ```
 
 or
