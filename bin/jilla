@@ -177,7 +177,7 @@ function load(cb) {
   if (fs.existsSync(cfgPath) && fs.existsSync(dbPath)) {
     cb(require(cfgPath), Db(dbPath));
   } else {
-    if (!fs.existsSync(cfgPath)) fs.mkdirSync(jillaPath);
+    if (!fs.existsSync(jillaPath)) fs.mkdirSync(jillaPath);
     console.log('');
     askFor(['Jira Url', 'Username', 'Password'], function(answers) {
       console.log('\nGood to go!\n');
