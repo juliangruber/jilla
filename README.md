@@ -27,7 +27,7 @@ $ jilla
     
 ```
 
-### Show my issues
+### Show open issues
 ```bash
 $ jilla ls
 
@@ -37,7 +37,17 @@ $ jilla ls
 
 ```
 
-### Log work
+### Show issues in progress
+
+```bash
+$ jilla running
+
+  WDSERVICE-78 2h 30m
+  PS-656       10m
+
+```
+
+### Start/Stop Progress
 ```bash
 $ jilla start PS-656
 ```
@@ -47,22 +57,13 @@ $ jilla stop  PS-656
 
   Time spent: 2h 30m
 
-$ jilla log PS-656 2h 30m
 ```
-
-or
-
+### Log work
 ```bash
+$ jilla log PS-656 2h 30m
+# or
 $ jilla stop PS-656 --log
 
   Time spent: 2h 30m
   
-```
-
-```bash
-$ jilla running
-
-  WDSERVICE-78 2h 30m
-  PS-656       10m
-
 ```
