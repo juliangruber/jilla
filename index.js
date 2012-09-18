@@ -2,7 +2,7 @@ var fs = require('fs');
 var readline = require('readline');
 var request = require('superagent');
 var ms = require('ms');
-var Db = require('./lib/db')
+var Db = require('./lib/db');
 
 var cfg, db;
 
@@ -72,7 +72,7 @@ function stop(issue, logAlso) {
       if (duration < 60000) duration = 60000;
       duration = ms(duration);
       console.log('\n  Time spent: '+duration+'.\n');
-      Db.del(issue);
+      db.del(issue);
       if (logAlso) log(issue, duration);
     })
   ;
@@ -96,11 +96,15 @@ function log(issue, time) {
 function running() {
   var issues = db.get();
   if (JSON.stringify(issues) == '{}') return;
-  console.log('\n');
+  console.log('');
+  var table = [];
   for (var issue in issues) {
-    console.log('  '+issue);
+    table.push([
+      issue,
+      ms(Date.now()-issues[issue])
+    ]);
   }
-  console.log('\n');
+  console.log(formatTable(table));
 }
 
 function formatTable(cols) {
@@ -110,7 +114,7 @@ function formatTable(cols) {
   for (var i=0; i<cols.length; i++) {
     for (var j=0; j<cols[i].length; j++) {
       if (!rowLengths[j]) rowLengths[j] = 0;
-      if (typeof cols[i][j] == 'string') cols[i][j] = {data:cols[i][j]};
+      if (typeof cols[i][j] != 'object') cols[i][j] = {data:cols[i][j]};
       if (cols[i][j].data.length > rowLengths[j]) {
         rowLengths[j] = cols[i][j].data.length;
       }
