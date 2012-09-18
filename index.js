@@ -2,6 +2,7 @@ var fs = require('fs');
 var readline = require('readline');
 var request = require('superagent');
 var ms = require('ms');
+var Db = require('./lib/db')
 
 var cfg, db;
 
@@ -9,10 +10,11 @@ load(function(_cfg, _db) {
   cfg = _cfg;
   db = _db;
   var cmd = process.argv[2];
-  if (cmd == 'ls')    ls();
-  if (cmd == 'start') start(process.argv[3]);
-  if (cmd == 'stop')  stop(process.argv[3], process.argv[4] == '--log');
-  if (cmd == 'log')   log(process.argv[3], process.argv[4]);
+  if (cmd == 'ls')      ls();
+  if (cmd == 'start')   start(process.argv[3]);
+  if (cmd == 'stop')    stop(process.argv[3], process.argv[4] == '--log');
+  if (cmd == 'log')     log(process.argv[3], process.argv[4]);
+  if (cmd == 'running') running();
 });
 
 function ls() {
@@ -70,6 +72,7 @@ function stop(issue, logAlso) {
       if (duration < 60000) duration = 60000;
       duration = ms(duration);
       console.log('\n  Time spent: '+duration+'.\n');
+      Db.del(issue);
       if (logAlso) log(issue, duration);
     })
   ;
@@ -87,6 +90,17 @@ function log(issue, time) {
         '\n'+res.body.errorMessages.join('\n\n')+'\n'
       );
     })
+  ;
+}
+
+function running() {
+  var issues = db.get();
+  if (JSON.stringify(issues) == '{}') return;
+  console.log('\n');
+  for (var issue in issues) {
+    console.log('  '+issue);
+  }
+  console.log('\n');
 }
 
 function formatTable(cols) {
@@ -158,7 +172,9 @@ function load(cb) {
     cb(require(cfgPath), Db(dbPath));
   } else {
     fs.mkdirSync(jillaPath);
+    console.log('');
     askFor(['Jira Url', 'Username', 'Password'], function(answers) {
+      console.log('\nGood to go!\n');
       cfg = {
         url     : answers['Jira Url'],
         user    : answers['Username'],
@@ -167,28 +183,9 @@ function load(cb) {
       if (cfg.url[cfg.url.length-1] != '/') cfg.url += '/';
       // TODO: Store password securely
       fs.writeFileSync(cfgPath, JSON.stringify(cfg));
-      fs.writeFileSync(dbPath, JSON.stringify({}));
       cb(cfg, Db(dbPath));
     });
   }
-}
-
-function Db(path) {
-  return new Database(path);
-}
-
-function Database(path) {
-  this.path = path;
-  this.db = require(path);
-}
-
-Database.prototype.get = function(key) {
-  return this.db[key];
-}
-
-Database.prototype.set = function(key, value) {
-  this.db[key] = value;
-  fs.writeFileSync(this.path, JSON.stringify(this.db));
 }
 
 function askFor(questions, cb) {
@@ -197,7 +194,6 @@ function askFor(questions, cb) {
     output: process.stdout
   });
   var answers = {};
-  console.log('');
 
   (function ask() {
     var question = questions.shift();
@@ -205,7 +201,6 @@ function askFor(questions, cb) {
       answers[question] = answer;
       if (!questions.length) {
         rl.close();
-        console.log('\nGood to go!\n');
         return cb(answers);
       }
       ask();

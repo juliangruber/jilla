@@ -53,6 +53,7 @@ $ jilla stop PS-656 --log
 ```bash
 $ jilla running
 
-  WDSERVICE-78 <jgruber>   ! LessLinter
+  WDSERVICE-78
+  PS-656
 
 ```
