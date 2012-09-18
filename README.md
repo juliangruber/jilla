@@ -18,13 +18,25 @@ Usage
 ### First use
 ```bash
 $ jilla
-  
-  JIRA URL: https://jira.atlassian.com/
-  Username:
-  Password:
-  
-  Good to go!
-    
+JIRA URL: https://jira.atlassian.com/
+Username:
+Password:
+Good to go!
+```
+
+### Print usage instructions
+```bash
+$ jilla
+usage: jilla <command> [<args>]
+
+Commands:
+   ls          List open tasks
+   start       Start working on a task
+   stop        Stop working on a task
+        --log  Log work also
+   log         Log work
+   running     List tasks that are being worked on currently
+
 ```
 
 ### Show open issues
