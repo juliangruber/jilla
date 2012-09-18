@@ -12,11 +12,12 @@ load(function(_cfg, _db) {
   cfg = _cfg;
   db = _db;
   var cmd = process.argv[2];
-  if (cmd == 'ls')      ls();
-  if (cmd == 'start')   start(process.argv[3]);
-  if (cmd == 'stop')    stop(process.argv[3], process.argv[4] == '--log');
-  if (cmd == 'log')     log(process.argv[3], process.argv.splice(4).join(''));
-  if (cmd == 'running') running();
+  if (cmd == 'ls')      return ls();
+  if (cmd == 'start')   return start(process.argv[3]);
+  if (cmd == 'stop')    return stop(process.argv[3], process.argv[4] == '--log');
+  if (cmd == 'log')     return log(process.argv[3], process.argv.splice(4).join(''));
+  if (cmd == 'running') return running();
+  usage();
 });
 
 function ls() {
@@ -105,6 +106,19 @@ function running() {
     ]);
   }
   console.log(formatTable(table));
+}
+
+function usage() {
+  console.log('usage: jilla <command> [<args>]');
+  console.log('');
+  console.log('Commands:');
+  console.log('   ls          List open tasks');
+  console.log('   start       Start working on a task');
+  console.log('   stop        Stop working on a task');
+  console.log('        --log  Log work also');
+  console.log('   log         Log work');
+  console.log('   running     List tasks that are being worked on currently');
+  console.log('');
 }
 
 function formatTable(cols) {
