@@ -38,6 +38,7 @@ Commands:
    resolve <id>          Resolve issue
    reopen  <id>          Reopen issue
    close   <id>          Close issue
+   search  <term>        Find issues
 
 ```
 
