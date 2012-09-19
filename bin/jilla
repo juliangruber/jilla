@@ -4,7 +4,8 @@ var fs = require('fs');
 var readline = require('readline');
 var request = require('superagent');
 var span = require('span');
-var Db = require('../lib/db');
+var JSONStore = require('json-store');
+var askFor = require('ask-for');
 
 var cfg, db;
 
@@ -198,7 +199,7 @@ function load(cb) {
   var dbPath = jillaPath+'db.json';
 
   if (fs.existsSync(cfgPath) && fs.existsSync(dbPath)) {
-    cb(require(cfgPath), Db(dbPath));
+    cb(require(cfgPath), JSONStore(dbPath));
   } else {
     if (!fs.existsSync(jillaPath)) fs.mkdirSync(jillaPath);
     askFor(['Jira Url', 'Username', 'Password'], function(answers) {
@@ -211,27 +212,7 @@ function load(cb) {
       if (cfg.url[cfg.url.length-1] != '/') cfg.url += '/';
       // TODO: Store password securely
       fs.writeFileSync(cfgPath, JSON.stringify(cfg));
-      cb(cfg, Db(dbPath));
+      cb(cfg, JSONStore(dbPath));
     });
   }
-}
-
-function askFor(questions, cb) {
-  var rl = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout
-  });
-  var answers = {};
-
-  (function ask() {
-    var question = questions.shift();
-    rl.question('  '+question+': ', function(answer) {
-      answers[question] = answer;
-      if (!questions.length) {
-        rl.close();
-        return cb(answers);
-      }
-      ask();
-    });
-  })();
 }

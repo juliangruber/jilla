@@ -1,11 +1,13 @@
 {
     "name": "jilla",
-    "version": "0.1.0",
+    "version": "0.1.1",
     "author": "Julian Gruber <julian@juliangruber.com>",
     "repository": "git://github.com/juliangruber/jilla",
     "dependencies": {
         "superagent": "*",
-        "span": "*"
+        "span": "*",
+        "ask-for": "*",
+        "json-store": "*"
     },
     "bin": {
         "jilla": "./bin/jilla"
