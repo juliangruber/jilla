@@ -30,12 +30,14 @@ $ jilla
 usage: jilla <command> [<args>]
 
 Commands:
-   ls          List open tasks
-   start       Start working on a task
-   stop        Stop working on a task
-        --log  Log work also
-   log         Log work
-   running     List tasks that are being worked on currently
+   ls                    List open issues
+   start   <id>          Start working on an issue
+   stop    <id> (--log)  Stop working on an issue (and log time)
+   log     <id> <time>   Log work
+   running               List issues in progress
+   resolve <id>          Resolve issue
+   reopen  <id>          Reopen issue
+   close   <id>          Close issue
 
 ```
 
@@ -70,6 +72,12 @@ $ jilla log PS-656 2h 30m
 # or
 $ jilla stop PS-656 --log
 Time spent: 2h 30m
+```
+### Resolve, Close & Reopen
+```bash
+$ jilla resolve PS-656
+$ jilla close PS-656
+$ jilla reopen PS-656
 ```
 
 License

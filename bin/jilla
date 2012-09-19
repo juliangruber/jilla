@@ -17,6 +17,9 @@ load(function(_cfg, _db) {
   if (cmd == 'stop')    return stop(process.argv[3], process.argv[4] == '--log');
   if (cmd == 'log')     return log(process.argv[3], process.argv.splice(4).join(''));
   if (cmd == 'running') return running();
+  if (cmd == 'resolve') return resolve(process.argv[3]);
+  if (cmd == 'reopen')  return reopen(process.argv[3]);
+  if (cmd == 'close')   return close(process.argv[3]);
   usage();
 });
 
@@ -43,44 +46,26 @@ function ls() {
 }
 
 function start(issue) {
-  request
-    .post(cfg.url+'rest/api/2/issue/'+issue+'/transitions')
-    .send({transition: {id: 4}})
-    .auth(cfg.user, cfg.password)
-    .end(function(res) {
-      if (!res.ok) return console.log(
-        res.body.errorMessages.join('\n')
-      );
-
-      db.set(issue, Date.now());
-    })
-  ;
+  transition(issue, 4, function() {
+    db.set(issue, Date.now());
+  });
 }
 
 function stop(issue, logAlso) {
-  request
-    .post(cfg.url+'rest/api/2/issue/'+issue+'/transitions')
-    .send({transition: {id: 301}})
-    .auth(cfg.user, cfg.password)
-    .end(function(res) {
-      if (!res.ok) return console.log(
-        res.body.errorMessages.join('\n')
-      );
-
-      // This can only happen when the Issue was started outside jilla
-      if (!db.get(issue)) {
-        if (logAlso) return console.error('Automatic logging only works for issues started from jilla');
-        return;
-      }
-      // TODO: less exact time display
-      var duration = Date.now() - db.get(issue);
-      if (duration < 60000) duration = 60000;
-      duration = span(duration);
-      console.log('Time spent: '+duration);
-      db.del(issue);
-      if (logAlso) log(issue, duration);
-    })
-  ;
+  transition(issue, 301, function() {
+    // This can only happen when the Issue was started outside jilla
+    if (!db.get(issue)) {
+      if (logAlso) return console.error('Automatic logging only works for issues started from jilla');
+      return;
+    }
+    // TODO: less exact time display
+    var duration = Date.now() - db.get(issue);
+    if (duration < 60000) duration = 60000;
+    duration = span(duration);
+    console.log('Time spent: '+duration);
+    db.del(issue);
+    if (logAlso) log(issue, duration);
+  });
 }
 
 function log(issue, time) {
@@ -103,25 +88,47 @@ function running() {
   if (JSON.stringify(issues) == '{}') return;
   var table = [];
   for (var issue in issues) {
+    var duration = Date.now()-issues[issue];
+    if (duration < 60000) duration = 60000;
     table.push([
       issue,
-      span(Date.now()-issues[issue])
+      span(duration)
     ]);
   }
   console.log(formatTable(table));
 }
 
+function resolve(issue) { transition(issue, 5);   }
+function reopen(issue)  { transition(issue, 3);   }
+function close(issue)   { transition(issue, 701); }
+
 function usage() {
   console.log('usage: jilla <command> [<args>]');
   console.log('');
   console.log('Commands:');
-  console.log('   ls          List open tasks');
-  console.log('   start       Start working on a task');
-  console.log('   stop        Stop working on a task');
-  console.log('        --log  Log work also');
-  console.log('   log         Log work');
-  console.log('   running     List tasks that are being worked on currently');
+  console.log('   ls                    List open issues');
+  console.log('   start   <id>          Start working on an issue');
+  console.log('   stop    <id> (--log)  Stop working on an issue (and log time)');
+  console.log('   log     <id> <time>   Log work');
+  console.log('   running               List issues in progress');
+  console.log('   resolve <id>          Resolve issue');
+  console.log('   reopen  <id>          Reopen issue');
+  console.log('   close   <id>          Close issue');
   console.log('');
+}
+
+function transition(issue, id, cb) {
+  request
+    .post(cfg.url+'rest/api/2/issue/'+issue+'/transitions')
+    .send({transition: {id: id}})
+    .auth(cfg.user, cfg.password)
+    .end(function(res) {
+      if (!res.ok) return console.log(
+        res.body.errorMessages.join('\n')
+      );
+      if (cb) cb();
+    })
+  ;
 }
 
 function formatTable(cols) {
