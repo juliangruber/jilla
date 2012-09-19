@@ -73,6 +73,15 @@ $ jilla log PS-656 2h 30m
 $ jilla stop PS-656 --log
 Time spent: 2h 30m
 ```
+
+### Search issues
+
+```bash
+$ jilla search lesslinter preprocessor
+WDSERVICE-78 <jgruber> !! LessLinter
+WDSERVICE-79 <fstock>   ! LessLinter testen
+```
+
 ### Resolve, Close & Reopen
 ```bash
 $ jilla resolve PS-656

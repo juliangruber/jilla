@@ -21,6 +21,7 @@ load(function(_cfg, _db) {
   if (cmd == 'resolve') return resolve(process.argv[3]);
   if (cmd == 'reopen')  return reopen(process.argv[3]);
   if (cmd == 'close')   return close(process.argv[3]);
+  if (cmd == 'search')  return search(process.argv.splice(3).join(' '));
   usage();
 });
 
@@ -30,7 +31,9 @@ function ls() {
     .set('Content-Type', 'application/json')
     .auth(cfg.user, cfg.password)
     .end(function(res) {
-      if (!res.ok) throw res.text;
+      if (!res.ok) return console.log(
+        res.body.errorMessages.join('\n')
+      );
       var issues = res.body.issues;
       var table = [];
       for (var i=0; i<issues.length; i++) {
@@ -103,6 +106,30 @@ function resolve(issue) { transition(issue, 5);   }
 function reopen(issue)  { transition(issue, 3);   }
 function close(issue)   { transition(issue, 701); }
 
+function search(term) {
+  request
+    .get(cfg.url+'rest/api/2/search?jql=summary+~+"'+term+'"+OR+description+~+"'+term+'"+OR+comment+~+"'+term+'"+order+by+due+ASC,+priority+DESC')
+    .set('Content-Type', 'application/json')
+    .auth(cfg.user, cfg.password)
+    .end(function(res) {
+      if (!res.ok) return console.log(
+        res.body.errorMessages.join('\n')
+      );
+      var issues = res.body.issues;
+      var table = [];
+      for (var i=0; i<issues.length; i++) {
+        table.push([
+          issues[i].key,
+          '<'+issues[i].fields.reporter.name+'>',
+          {data: formatPrio(issues[i].fields.priority.name), right: true},
+          issues[i].fields.summary
+        ]);
+      }
+      console.log(formatTable(table));
+    })
+  ;
+}
+
 function usage() {
   console.log('usage: jilla <command> [<args>]');
   console.log('');
@@ -115,6 +142,7 @@ function usage() {
   console.log('   resolve <id>          Resolve issue');
   console.log('   reopen  <id>          Reopen issue');
   console.log('   close   <id>          Close issue');
+  console.log('   search  <term>        Find issues');
   console.log('');
 }
 
