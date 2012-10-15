@@ -1,6 +1,7 @@
+
 # jilla
 
-**jilla** is a *Jira* client for lazy people.
+jilla is a Jira client for lazy people.
 
 ## Installation
 
