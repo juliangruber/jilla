@@ -1,10 +1,8 @@
-jilla
-=====
+# jilla
 
 **jilla** is a *Jira* client for lazy people.
 
-Installation
-------------
+## Installation
 
 Install [node.js](http://nodejs.org/). Then, in your shell:
 
@@ -12,10 +10,10 @@ Install [node.js](http://nodejs.org/). Then, in your shell:
 $ npm install -g jilla
 ```
 
-Usage
------
+## Usage
 
 ### First use
+
 ```bash
 $ jilla
 JIRA URL: https://jira.atlassian.com/
@@ -25,6 +23,7 @@ Good to go!
 ```
 
 ### Print usage instructions
+
 ```bash
 $ jilla
 usage: jilla <command> [<args>]
@@ -43,6 +42,7 @@ Commands:
 ```
 
 ### Show open issues
+
 ```bash
 $ jilla ls
 WDSERVICE-78 <jgruber>  !! LessLinter
@@ -59,6 +59,7 @@ PS-656       10m
 ```
 
 ### Start/Stop Progress
+
 ```bash
 $ jilla start PS-656
 ```
@@ -68,6 +69,7 @@ $ jilla stop  PS-656
 Time spent: 2h 30m
 ```
 ### Log work
+
 ```bash
 $ jilla log PS-656 2h 30m
 # or
@@ -84,14 +86,14 @@ WDSERVICE-79 <fstock>   ! LessLinter testen
 ```
 
 ### Resolve, Close & Reopen
+
 ```bash
 $ jilla resolve PS-656
 $ jilla close PS-656
 $ jilla reopen PS-656
 ```
 
-License
--------
+## License
 
 (MIT)
 
