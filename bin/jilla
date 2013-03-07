@@ -13,15 +13,18 @@ load(function(_cfg, _db) {
   cfg = _cfg;
   db = _db;
   var cmd = process.argv[2];
-  if (cmd == 'ls')      return ls();
-  if (cmd == 'start')   return start(process.argv[3]);
-  if (cmd == 'stop')    return stop(process.argv[3], process.argv[4] == '--log');
-  if (cmd == 'log')     return log(process.argv[3], process.argv.splice(4).join(''));
-  if (cmd == 'running') return running();
-  if (cmd == 'resolve') return resolve(process.argv[3]);
-  if (cmd == 'reopen')  return reopen(process.argv[3]);
-  if (cmd == 'close')   return close(process.argv[3]);
-  if (cmd == 'search')  return search(process.argv.splice(3).join(' '));
+  if (cmd == 'ls')        return ls();
+  if (cmd == 'start')     return start(process.argv[3]);
+  if (cmd == 'stop')      return stop(process.argv[3], process.argv[4] == '--log');
+  if (cmd == 'log')       return log(process.argv[3], process.argv.splice(4).join(''));
+  if (cmd == 'running')   return running();
+  if (cmd == 'resolve')   return resolve(process.argv[3]);
+  if (cmd == 'reopen')    return reopen(process.argv[3]);
+  if (cmd == 'close')     return close(process.argv[3]);
+  if (cmd == 'search')    return search(process.argv.splice(3).join(' '));
+  if (cmd == 'describe')  return describe(process.argv[3]);
+  if (cmd == 'comments')  return comments(process.argv[3]);
+  if (cmd == 'subtasks')  return subtasks(process.argv[3]);
   usage();
 });
 
@@ -130,19 +133,83 @@ function search(term) {
   ;
 }
 
+function describe(issue) {
+  request
+    .get(cfg.url+'rest/api/2/issue/'+issue)
+    .auth(cfg.user, cfg.password)
+    .end(function(res) {
+      if (!res.ok) return console.log(
+        res.body.errorMessages.join('\n')
+      );
+      var fields = res.body.fields;
+      var subtasks = fields.subtasks;
+      var comments = fields.comment.comments;
+      console.log('Ticket:      ' + res.body.key);
+      console.log('Summary:     ' + field(fields, 'summary'));
+      console.log('Status:      ' + field(fields, 'status.name'));
+      console.log('Reporter:    ' + formatUser(fields.reporter));
+      console.log('Assignee:    ' + formatUser(fields.assignee));
+      console.log('Description: ' + limitWidth(field(fields, 'description'), 66).split('\n').join(
+                '\n             ') || '<blank>');
+      console.log('Labels:      ' + limitWidth(fields.labels.join(', '), 66));
+      console.log('Subtasks:    ' + subtasks.length);
+      console.log('Comments:    ' + comments.length);
+    });
+}
+
+function comments(issue) {
+  request
+    .get(cfg.url+'rest/api/2/issue/'+issue)
+    .auth(cfg.user, cfg.password)
+    .end(function(res) {
+      if (!res.ok) return console.log(
+        res.body.errorMessages.join('\n')
+      );
+      var fields = res.body.fields;
+      var comments = fields.comment.comments;
+      if (comments.length) {
+         console.log(formatComments(comments));
+      }
+      else {
+        console.log('No Comments');
+      }
+    });
+}
+
+function subtasks(issue) {
+  request
+    .get(cfg.url+'rest/api/2/issue/'+issue)
+    .auth(cfg.user, cfg.password)
+    .end(function(res) {
+      if (!res.ok) return console.log(
+        res.body.errorMessages.join('\n')
+      );
+      var fields = res.body.fields;
+      var subtasks = fields.subtasks;
+      if (subtasks.length) {
+         console.log(formatSubtasks(subtasks));
+      }
+      else {
+        console.log('No Subtasks');
+      }
+    });
+}
+
 function usage() {
   console.log('usage: jilla <command> [<args>]');
   console.log('');
   console.log('Commands:');
-  console.log('   ls                    List open issues');
-  console.log('   start   <id>          Start working on an issue');
-  console.log('   stop    <id> (--log)  Stop working on an issue (and log time)');
-  console.log('   log     <id> <time>   Log work');
-  console.log('   running               List issues in progress');
-  console.log('   resolve <id>          Resolve issue');
-  console.log('   reopen  <id>          Reopen issue');
-  console.log('   close   <id>          Close issue');
-  console.log('   search  <term>        Find issues');
+  console.log('   ls                      List open issues');
+  console.log('   start     <id>          Start working on an issue');
+  console.log('   stop      <id> (--log)  Stop working on an issue (and log time)');
+  console.log('   log       <id> <time>   Log work');
+  console.log('   running                 List issues in progress');
+  console.log('   resolve   <id>          Resolve issue');
+  console.log('   reopen    <id>          Reopen issue');
+  console.log('   close     <id>          Close issue');
+  console.log('   search    <term>        Find issues');
+  console.log('   describe  <id>          Display issue description and comments');
+  console.log('   comments  <id>          Display comments on an issue');
   console.log('');
 }
 
@@ -244,3 +311,84 @@ function load(cb) {
     });
   }
 }
+
+function field(obj, pathString) {
+  var fn;
+  if (!obj || typeof pathString !== 'string') return '';
+  return (fn = function(obj, path) {
+    var prop = path.shift();
+    if (!(prop in obj) || obj[prop] == null) return '';
+    if (path.length) {
+      return fn(obj[prop], path);
+    }
+    return String(obj[prop]);
+  })(obj, pathString.split('.'));
+}
+
+function limitWidth(string, len) {
+  var lines = string.split('\n')
+    , len = (typeof len === 'number') ? len : 80
+    , chars
+    , newLine;
+  for (var i = 0; i < lines.length; i++) {
+    if (lines[i].length > len) {
+      chars = lines[i].split('');
+      lines[i] = lines[i].slice(0, len - 1);
+      lines.splice(i + 1, 0, chars.slice(len - 1).join(''));
+    }
+  }
+  return lines.join('\n');
+}
+
+function formatUser(user, hideEmail) {
+  var formatted = field(user, 'displayName');
+  if (!hideEmail) {
+    formatted += ' <'+field(user, 'emailAddress')+'>';
+  }
+  return formatted;
+}
+
+function formatComments(comments) {
+  var latestFirst = comments.reverse();
+  var formatted = [];
+  latestFirst.forEach(function(comment) {
+    formatted.push(formatComment(comment));
+  });
+  return formatted.join('\n\n');
+}
+
+function formatComment(comment) {
+  var body = field(comment, 'body');
+  var user = formatUser(comment.author, true);
+  var indentAmount = 4;
+  var formattedComment = indent(limitWidth(body, 80 - indentAmount), indentAmount);
+  return user + ' on ' + field(comment, 'updated') + '\n' + formattedComment;
+}
+
+function indent(text, by) {
+  var indent = createIndent(by);
+  var lines = text.split('\n');
+  for (var i = 0; i < lines.length; i++) {
+    lines[i] = indent + lines[i];
+  }
+  return lines.join('\n');
+}
+
+function createIndent(len) {
+  var indent = '';
+  while (len--) {
+    indent += ' ';
+  }
+  return indent;
+}
+
+function formatSubtasks(subtasks) {
+  var formatted = [];
+  subtasks.forEach(function(task) {
+    formatted.push(
+      field(task, 'key') + '\t' + field(task, 'fields.summary')
+    );
+  });
+  return formatted.join('\n');
+}
+
