@@ -116,23 +116,13 @@ Description:
 
 ```
 
-### List comments on an issue
+### Comment on an issue
 
 ```bash
-$ jilla comments IDEA-2
-Author: Godfrey Jones
-Date:   Fri Mar 09 2013 08:00:12 GMT-0500 (EST)
-
-    Hello Homer, this is the voice of *God*...frey Jones.
-
-Author: Scott Seaward
-Date:   Fri Mar 08 2013 10:27:36 GMT-0500 (EST)
-
-    damn you \\ space coyote
-
+$ jilla comment IDEA-2 "Hello, \\ World!"
 ```
 
-### List comments on an issue, latest at the top
+### List comments on an issue
 
 ```bash
 $ jilla comments IDEA-2 --reverse
@@ -148,11 +138,20 @@ Date:   Fri Mar 09 2013 08:00:12 GMT-0500 (EST)
 
 ```
 
-
-### Comment on an issue
+### List comments on an issue, latest at the top
 
 ```bash
-$ jilla comment IDEA-2 "Hello, \\ World!"
+$ jilla comments IDEA-2
+Author: Godfrey Jones
+Date:   Fri Mar 09 2013 08:00:12 GMT-0500 (EST)
+
+    Hello Homer, this is the voice of *God*...frey Jones.
+
+Author: Scott Seaward
+Date:   Fri Mar 08 2013 10:27:36 GMT-0500 (EST)
+
+    damn you \\ space coyote
+
 ```
 
 ## License
