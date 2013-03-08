@@ -9,14 +9,14 @@ Install [node.js](http://nodejs.org/). Then, in your shell:
 
 ### For the official NPM package
 
-See [https://github.com/godmodelabs/jilla] for this version.
-
+See https://github.com/godmodelabs/jilla for details on the NPM
+version.
 
 ```bash
 $ npm install -g jilla
 ```
 
-### For this hacked up version
+### To use this hacked up version
 
 ```bash
 $ git clone git@github.com:plainview/jilla.git
