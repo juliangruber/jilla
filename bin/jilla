@@ -431,10 +431,12 @@ function formatSubtasks(subtasks) {
   subtasks.forEach(function(task) {
     var status = parseInt(field(task, 'fields.status.id'), 10);
     var closed = status === CLOSED;
-    formatted.push(
-      field(task, 'key') + (closed ? '  (\u2713)  ' : '       ') + field(task, 'fields.summary')
-    );
+    formatted.push([
+      field(task, 'key'),
+      (closed ? '  (\u2713)  ' : '       '),
+      field(task, 'fields.summary')
+    ]);
   });
-  return formatted.join('\n');
+  return formatTable(formatted);
 }
 
