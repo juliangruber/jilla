@@ -34,7 +34,7 @@ load(function(_cfg, _db) {
   if (cmd == 'close')     return close(process.argv[3]);
   if (cmd == 'search')    return search(process.argv.splice(3).join(' '));
   if (cmd == 'describe')  return describe(process.argv[3]);
-  if (cmd == 'comments')  return comments(process.argv[3]);
+  if (cmd == 'comments')  return comments(process.argv[3], process.argv[4] == '--reverse');
   if (cmd == 'subtasks')  return subtasks(process.argv[3]);
   if (cmd == 'comment')   return comment(process.argv[3], process.argv.slice(4));
   usage();
@@ -175,7 +175,7 @@ function describe(issue) {
     });
 }
 
-function comments(issue) {
+function comments(issue, reverse) {
   if (!issue) return usage();
   request
     .get(cfg.url+'rest/api/2/issue/'+issue)
@@ -186,6 +186,9 @@ function comments(issue) {
       );
       var fields = res.body.fields;
       var comments = fields.comment.comments;
+      if (reverse) {
+        comments = comments.reverse();
+      }
       if (comments.length) {
          console.log(formatComments(comments));
       }
@@ -245,19 +248,19 @@ function usage() {
   console.log('usage: jilla <command> [<args>]');
   console.log('');
   console.log('Commands:');
-  console.log('   ls                        List open issues');
-  console.log('   start     <id>            Start working on an issue');
-  console.log('   stop      <id> (--log)    Stop working on an issue (and log time)');
-  console.log('   log       <id> <time>     Log work');
-  console.log('   running                   List issues in progress');
-  console.log('   resolve   <id>            Resolve issue');
-  console.log('   reopen    <id>            Reopen issue');
-  console.log('   close     <id>            Close issue');
-  console.log('   search    <term>          Find issues');
-  console.log('   describe  <id>            Display issue synopsis');
-  console.log('   comments  <id>            Display comments on an issue');
-  console.log('   subtasks  <id>            List an issue\'s subtasks');
-  console.log('   comment   <id> <message>  Comment on an issue');
+  console.log('   ls                          List open issues');
+  console.log('   start     <id>              Start working on an issue');
+  console.log('   stop      <id> (--log)      Stop working on an issue (and log time)');
+  console.log('   log       <id> <time>       Log work');
+  console.log('   running                     List issues in progress');
+  console.log('   resolve   <id>              Resolve issue');
+  console.log('   reopen    <id>              Reopen issue');
+  console.log('   close     <id>              Close issue');
+  console.log('   search    <term>            Find issues');
+  console.log('   describe  <id>              Display issue synopsis');
+  console.log('   comments  <id> (--reverse)  Display comments on an issue');
+  console.log('   subtasks  <id>              List an issue\'s subtasks');
+  console.log('   comment   <id> <message>    Comment on an issue');
   console.log('');
 }
 
@@ -398,9 +401,8 @@ function formatUser(user, hideEmail) {
 }
 
 function formatComments(comments) {
-  var latestFirst = comments.reverse();
   var formatted = [];
-  latestFirst.forEach(function(comment) {
+  comments.forEach(function(comment) {
     formatted.push(formatComment(comment));
   });
   return formatted.join('\n\n');
