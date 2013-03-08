@@ -400,7 +400,11 @@ function formatComment(comment) {
   var user = formatUser(comment.author, true);
   var indentAmount = 4;
   var formattedComment = indent(limitWidth(body, 80 - indentAmount), indentAmount);
-  return user + ' on ' + field(comment, 'updated') + '\n' + formattedComment;
+  return 'Author: ' + user + '\n'
+       + 'Date:   ' + new Date(field(comment, 'updated')).toLocaleString() + '\n'
+       + '\n'
+       + formattedComment
+       + '\n';
 }
 
 function indent(text, by) {
