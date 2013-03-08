@@ -208,8 +208,9 @@ function usage() {
   console.log('   reopen    <id>          Reopen issue');
   console.log('   close     <id>          Close issue');
   console.log('   search    <term>        Find issues');
-  console.log('   describe  <id>          Display issue description and comments');
+  console.log('   describe  <id>          Display issue synopsis');
   console.log('   comments  <id>          Display comments on an issue');
+  console.log('   subtasks  <id>          List an issue\'s subtasks');
   console.log('');
 }
 
