@@ -1,6 +1,9 @@
 #!/usr/bin/env node
 
-var CLOSED = 6;
+// Statuses
+var OPEN        = 1;
+var IN_PROGRESS = 3;
+var CLOSED      = 6;
 
 var fs = require('fs');
 var readline = require('readline');
@@ -115,7 +118,7 @@ function running() {
 }
 
 function resolve(issue) { transition(issue, 5);   }
-function reopen(issue)  { transition(issue, 3);   }
+function reopen(issue)  { transition(issue, IN_PROGRESS);   }
 function close(issue)   { transition(issue, 701); }
 
 function search(term) {
