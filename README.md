@@ -132,6 +132,23 @@ Date:   Fri Mar 08 2013 10:27:36 GMT-0500 (EST)
 
 ```
 
+### List comments on an issue, latest at the top
+
+```bash
+$ jilla comments IDEA-2 --reverse
+Author: Scott Seaward
+Date:   Fri Mar 08 2013 10:27:36 GMT-0500 (EST)
+
+    damn you \\ space coyote
+
+Author: Godfrey Jones
+Date:   Fri Mar 09 2013 08:00:12 GMT-0500 (EST)
+
+    Hello Homer, this is the voice of *God*...frey Jones.
+
+```
+
+
 ### Comment on an issue
 
 ```bash
