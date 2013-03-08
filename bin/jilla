@@ -9,6 +9,12 @@ var askFor = require('ask-for');
 
 var cfg, db;
 
+// doesn't work, not sure why
+process.on('SIGINT', function() {
+  console.log('\nBYE');
+  process.exit(1);
+});
+
 load(function(_cfg, _db) {
   cfg = _cfg;
   db = _db;
@@ -25,6 +31,7 @@ load(function(_cfg, _db) {
   if (cmd == 'describe')  return describe(process.argv[3]);
   if (cmd == 'comments')  return comments(process.argv[3]);
   if (cmd == 'subtasks')  return subtasks(process.argv[3]);
+  if (cmd == 'comment')   return comment(process.argv[3], process.argv.slice(4));
   usage();
 });
 
@@ -134,6 +141,7 @@ function search(term) {
 }
 
 function describe(issue) {
+  if (!issue) return usage();
   request
     .get(cfg.url+'rest/api/2/issue/'+issue)
     .auth(cfg.user, cfg.password)
@@ -158,6 +166,7 @@ function describe(issue) {
 }
 
 function comments(issue) {
+  if (!issue) return usage();
   request
     .get(cfg.url+'rest/api/2/issue/'+issue)
     .auth(cfg.user, cfg.password)
@@ -177,6 +186,7 @@ function comments(issue) {
 }
 
 function subtasks(issue) {
+  if (!issue) return usage();
   request
     .get(cfg.url+'rest/api/2/issue/'+issue)
     .auth(cfg.user, cfg.password)
@@ -195,22 +205,49 @@ function subtasks(issue) {
     });
 }
 
+function comment(issue, messageList) {
+  if (!issue) return usage();
+  if (!messageList.length) return askFor(['Comment'], function(answers) {
+    commentOn(issue, answers['Comment']);
+  });
+  if (messageList.length > 1) return commentOn(issue, messageList.join(' '));
+  return commentOn(issue, messageList[0]);
+}
+
+function commentOn(issue, message) {
+  request
+    .post(cfg.url+'rest/api/2/issue/'+issue.toUpperCase()+'/comment/')
+    .auth(cfg.user, cfg.password)
+    .send({ body: addEscapes(message) })
+    .end(function(res) {
+      if (!res.ok) return console.log(
+        res.body.errorMessages.join('\n')
+      );
+      console.log('OK');
+    });
+}
+
+function addEscapes(string) {
+  return string.replace(/\\/g, '\\\\');
+}
+
 function usage() {
   console.log('usage: jilla <command> [<args>]');
   console.log('');
   console.log('Commands:');
-  console.log('   ls                      List open issues');
-  console.log('   start     <id>          Start working on an issue');
-  console.log('   stop      <id> (--log)  Stop working on an issue (and log time)');
-  console.log('   log       <id> <time>   Log work');
-  console.log('   running                 List issues in progress');
-  console.log('   resolve   <id>          Resolve issue');
-  console.log('   reopen    <id>          Reopen issue');
-  console.log('   close     <id>          Close issue');
-  console.log('   search    <term>        Find issues');
-  console.log('   describe  <id>          Display issue synopsis');
-  console.log('   comments  <id>          Display comments on an issue');
-  console.log('   subtasks  <id>          List an issue\'s subtasks');
+  console.log('   ls                        List open issues');
+  console.log('   start     <id>            Start working on an issue');
+  console.log('   stop      <id> (--log)    Stop working on an issue (and log time)');
+  console.log('   log       <id> <time>     Log work');
+  console.log('   running                   List issues in progress');
+  console.log('   resolve   <id>            Resolve issue');
+  console.log('   reopen    <id>            Reopen issue');
+  console.log('   close     <id>            Close issue');
+  console.log('   search    <term>          Find issues');
+  console.log('   describe  <id>            Display issue synopsis');
+  console.log('   comments  <id>            Display comments on an issue');
+  console.log('   subtasks  <id>            List an issue\'s subtasks');
+  console.log('   comment   <id> <message>  Comment on an issue');
   console.log('');
 }
 
