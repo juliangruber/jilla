@@ -218,6 +218,7 @@ function formatPrio(name) {
   if (name == 'Major')    return '!!';
   if (name == 'Critical') return '!!!';
   if (name == 'Blocker')  return '!!!!';
+  return name;
 }
 
 function load(cb) {
