@@ -158,16 +158,17 @@ function describe(issue) {
       formatted.push(
         ['Ticket:', res.body.key]
       , ['Summary:', field(fields, 'summary')]
-      , ['Status:      ', field(fields, 'status.name')]
-      , ['Reporter:    ', formatUser(fields.reporter)]
-      , ['Assignee:    ', formatUser(fields.assignee)]
-      , ['Description: ', limitWidth(field(fields, 'description'), 66).split('\n').join(
-       '\n             ') || '']
-      , ['Labels:      ', limitWidth(fields.labels.join(', '), 66)]
-      , ['Subtasks:    ', subtasks.length]
-      , ['Comments:    ', comments.length]
+      , ['Status:', field(fields, 'status.name')]
+      , ['Reporter:', formatUser(fields.reporter)]
+      , ['Assignee:', formatUser(fields.assignee)]
+      , ['Labels:', limitWidth(fields.labels.join(', '), 66)]
+      , ['Subtasks:', subtasks.length]
+      , ['Comments:', comments.length]
+      , ['Description:']
       );
-      console.log(formatTable(formatted, { wrapText: true }));
+      var table = formatTable(formatted);
+      table += '\n\n' + indent(limitWidth(field(fields, 'description'), 70), 4) + '\n';
+      console.log(table);
     });
 }
 
