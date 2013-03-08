@@ -125,7 +125,7 @@ $ jilla comment IDEA-2 "Hello, \\ World!"
 ### List comments on an issue
 
 ```bash
-$ jilla comments IDEA-2 --reverse
+$ jilla comments IDEA-2
 Author: Scott Seaward
 Date:   Fri Mar 08 2013 10:27:36 GMT-0500 (EST)
 
@@ -141,7 +141,7 @@ Date:   Fri Mar 09 2013 08:00:12 GMT-0500 (EST)
 ### List comments on an issue, latest at the top
 
 ```bash
-$ jilla comments IDEA-2
+$ jilla comments IDEA-2 --reverse
 Author: Godfrey Jones
 Date:   Fri Mar 09 2013 08:00:12 GMT-0500 (EST)
 
