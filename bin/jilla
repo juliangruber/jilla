@@ -154,16 +154,20 @@ function describe(issue) {
       var fields = res.body.fields;
       var subtasks = fields.subtasks;
       var comments = fields.comment.comments;
-      console.log('Ticket:      ' + res.body.key);
-      console.log('Summary:     ' + field(fields, 'summary'));
-      console.log('Status:      ' + field(fields, 'status.name'));
-      console.log('Reporter:    ' + formatUser(fields.reporter));
-      console.log('Assignee:    ' + formatUser(fields.assignee));
-      console.log('Description: ' + limitWidth(field(fields, 'description'), 66).split('\n').join(
-                '\n             ') || '<blank>');
-      console.log('Labels:      ' + limitWidth(fields.labels.join(', '), 66));
-      console.log('Subtasks:    ' + subtasks.length);
-      console.log('Comments:    ' + comments.length);
+      var formatted = [];
+      formatted.push(
+        ['Ticket:', res.body.key]
+      , ['Summary:', field(fields, 'summary')]
+      , ['Status:      ', field(fields, 'status.name')]
+      , ['Reporter:    ', formatUser(fields.reporter)]
+      , ['Assignee:    ', formatUser(fields.assignee)]
+      , ['Description: ', limitWidth(field(fields, 'description'), 66).split('\n').join(
+       '\n             ') || '']
+      , ['Labels:      ', limitWidth(fields.labels.join(', '), 66)]
+      , ['Subtasks:    ', subtasks.length]
+      , ['Comments:    ', comments.length]
+      );
+      console.log(formatTable(formatted, { wrapText: true }));
     });
 }
 
@@ -267,9 +271,10 @@ function transition(issue, id, cb) {
   ;
 }
 
-function formatTable(cols) {
+function formatTable(cols, options) {
   var rowLengths = [];
   var output = '';
+  options = options || {};
 
   for (var i=0; i<cols.length; i++) {
     for (var j=0; j<cols[i].length; j++) {
@@ -294,7 +299,7 @@ function formatTable(cols) {
         {right: cols[i][j].right}
       ) + ' ';
     }
-    output += truncate(col, 79);
+    output += options.wrapText ? limitWidth(col, 80) : truncate(col, 79);
     if (i < cols.length-1) output += '\n';
   }
 
@@ -366,10 +371,10 @@ function field(obj, pathString) {
 }
 
 function limitWidth(string, len) {
-  var lines = string.split('\n')
-    , len = (typeof len === 'number') ? len : 80
-    , chars
-    , newLine;
+  var lines = string.split('\n');
+  var len = (typeof len === 'number') ? len : 80;
+  var chars;
+  var newLine;
   for (var i = 0; i < lines.length; i++) {
     if (lines[i].length > len) {
       chars = lines[i].split('');
