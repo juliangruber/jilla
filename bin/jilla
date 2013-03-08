@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 
+var CLOSED = 6;
+
 var fs = require('fs');
 var readline = require('readline');
 var request = require('superagent');
@@ -427,8 +429,10 @@ function createIndent(len) {
 function formatSubtasks(subtasks) {
   var formatted = [];
   subtasks.forEach(function(task) {
+    var status = parseInt(field(task, 'fields.status.id'), 10);
+    var closed = status === CLOSED;
     formatted.push(
-      field(task, 'key') + '\t' + field(task, 'fields.summary')
+      field(task, 'key') + (closed ? '  (\u2713)  ' : '       ') + field(task, 'fields.summary')
     );
   });
   return formatted.join('\n');
