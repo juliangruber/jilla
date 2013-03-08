@@ -34,7 +34,7 @@ load(function(_cfg, _db) {
   if (cmd == 'close')     return close(process.argv[3]);
   if (cmd == 'search')    return search(process.argv.splice(3).join(' '));
   if (cmd == 'describe')  return describe(process.argv[3]);
-  if (cmd == 'comments')  return comments(process.argv[3] == '--reverse' ? process.argv[4] : process.argv[3], process.argv[3] == '--reverse');
+  if (cmd == 'comments')  return comments(process.argv[3], process.argv[4] == '--reverse');
   if (cmd == 'subtasks')  return subtasks(process.argv[3]);
   if (cmd == 'comment')   return comment(process.argv[3], process.argv.slice(4));
   usage();
