@@ -14,12 +14,6 @@ var askFor = require('ask-for');
 
 var cfg, db;
 
-// doesn't work, not sure why
-process.on('SIGINT', function() {
-  console.log('\nBYE');
-  process.exit(1);
-});
-
 load(function(_cfg, _db) {
   cfg = _cfg;
   db = _db;
@@ -159,15 +153,15 @@ function describe(issue) {
       var comments = fields.comment.comments;
       var formatted = [];
       formatted.push(
-        ['Ticket:', res.body.key]
-      , ['Summary:', field(fields, 'summary')]
-      , ['Status:', field(fields, 'status.name')]
-      , ['Reporter:', formatUser(fields.reporter)]
-      , ['Assignee:', formatUser(fields.assignee)]
-      , ['Labels:', limitWidth(fields.labels.join(', '), 66)]
-      , ['Subtasks:', subtasks.length]
-      , ['Comments:', comments.length]
-      , ['Description:']
+        ['Ticket:', res.body.key],
+        ['Summary:', field(fields, 'summary')],
+        ['Status:', field(fields, 'status.name')],
+        ['Reporter:', formatUser(fields.reporter)],
+        ['Assignee:', formatUser(fields.assignee)],
+        ['Labels:', limitWidth(fields.labels.join(', '), 66)],
+        ['Subtasks:', subtasks.length],
+        ['Comments:', comments.length],
+        ['Description:']
       );
       var table = formatTable(formatted);
       table += '\n\n' + indent(limitWidth(field(fields, 'description'), 70), 4) + '\n';
@@ -175,6 +169,8 @@ function describe(issue) {
     });
 }
 
+// List comments on an issue
+// list can be reversed so that newest are at the top
 function comments(issue, reverse) {
   if (!issue) return usage();
   request
@@ -198,6 +194,7 @@ function comments(issue, reverse) {
     });
 }
 
+// List subtasks of an issue
 function subtasks(issue) {
   if (!issue) return usage();
   request
@@ -218,6 +215,7 @@ function subtasks(issue) {
     });
 }
 
+// Comment on an issue
 function comment(issue, messageList) {
   if (!issue) return usage();
   if (!messageList.length) return askFor(['Comment'], function(answers) {
@@ -227,6 +225,7 @@ function comment(issue, messageList) {
   return commentOn(issue, messageList[0]);
 }
 
+// Helper to make POST request to JIRA API with comment
 function commentOn(issue, message) {
   request
     .post(cfg.url+'rest/api/2/issue/'+issue.toUpperCase()+'/comment/')
@@ -260,7 +259,7 @@ function usage() {
   console.log('   describe  <id>              Display issue synopsis');
   console.log('   comments  <id> (--reverse)  Display comments on an issue');
   console.log('   subtasks  <id>              List an issue\'s subtasks');
-  console.log('   comment   <id> <message>    Comment on an issue');
+  console.log('   comment   <id> "<message>"  Comment on an issue');
   console.log('');
 }
 
@@ -364,6 +363,8 @@ function load(cb) {
   }
 }
 
+// Get a field nested deep inside an object
+// Returns an empty string if the field doesn't exist or is null/undefined
 function field(obj, pathString) {
   var fn;
   if (!obj || typeof pathString !== 'string') return '';
@@ -377,6 +378,8 @@ function field(obj, pathString) {
   })(obj, pathString.split('.'));
 }
 
+// Limit the widths of lines in a string
+// Assumes that lines are separated with a single \n newline character
 function limitWidth(string, len) {
   var lines = string.split('\n');
   var len = (typeof len === 'number') ? len : 80;
