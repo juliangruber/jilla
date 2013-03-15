@@ -16,13 +16,6 @@ version.
 $ npm install -g jilla
 ```
 
-### To use this hacked up version
-
-```bash
-$ git clone git@github.com:plainview/jilla.git
-$ alias jilla="$PWD/jilla/bin/jilla"
-```
-
 ## Usage
 
 ### First use
@@ -134,7 +127,7 @@ Description:
 $ jilla comment IDEA-2 "Hello, \\ World!"
 ```
 
-### List comments on an issue
+### List comments on an issue, latest at the bottom
 
 ```bash
 $ jilla comments IDEA-2
