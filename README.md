@@ -30,15 +30,19 @@ $ jilla
 usage: jilla <command> [<args>]
 
 Commands:
-   ls                    List open issues
-   start   <id>          Start working on an issue
-   stop    <id> (--log)  Stop working on an issue (and log time)
-   log     <id> <time>   Log work
-   running               List issues in progress
-   resolve <id>          Resolve issue
-   reopen  <id>          Reopen issue
-   close   <id>          Close issue
-   search  <term>        Find issues
+   ls                          List open issues
+   start     <id>              Start working on an issue
+   stop      <id> (--log)      Stop working on an issue (and log time)
+   log       <id> <time>       Log work
+   running                     List issues in progress
+   resolve   <id>              Resolve issue
+   reopen    <id>              Reopen issue
+   close     <id>              Close issue
+   search    <term>            Find issues
+   describe  <id>              Display issue synopsis
+   comments  <id> (--reverse)  Display comments on an issue
+   subtasks  <id>              List an issue's subtasks
+   comment   <id> <message>    Comment on an issue
 
 ```
 
@@ -92,6 +96,62 @@ WDSERVICE-79 <fstock>   ! LessLinter testen
 $ jilla resolve PS-656
 $ jilla close PS-656
 $ jilla reopen PS-656
+```
+
+### Describe an issue
+
+```bash
+$ jilla describe IDEA-2
+Ticket:      IDEA-2
+Summary:     Scott's Jilla Test Ticket
+Status:      Open
+Reporter:    Scott Seaward <sseaward@nypublicradio.org>
+Assignee:    Scott Seaward <sseaward@nypublicradio.org>
+Labels:
+Subtasks:    0
+Comments:    1
+Description:
+
+    This is a ticket to test Jilla on.
+
+```
+
+### Comment on an issue
+
+```bash
+$ jilla comment IDEA-2 "Hello, \\ World!"
+```
+
+### List comments on an issue, latest at the bottom
+
+```bash
+$ jilla comments IDEA-2
+Author: Scott Seaward
+Date:   Fri Mar 08 2013 10:27:36 GMT-0500 (EST)
+
+    damn you \\ space coyote
+
+Author: Godfrey Jones
+Date:   Fri Mar 09 2013 08:00:12 GMT-0500 (EST)
+
+    Hello Homer, this is the voice of *God*...frey Jones.
+
+```
+
+### List comments on an issue, latest at the top
+
+```bash
+$ jilla comments IDEA-2 --reverse
+Author: Godfrey Jones
+Date:   Fri Mar 09 2013 08:00:12 GMT-0500 (EST)
+
+    Hello Homer, this is the voice of *God*...frey Jones.
+
+Author: Scott Seaward
+Date:   Fri Mar 08 2013 10:27:36 GMT-0500 (EST)
+
+    damn you \\ space coyote
+
 ```
 
 ## License
