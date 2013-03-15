@@ -1,5 +1,10 @@
 #!/usr/bin/env node
 
+// Statuses
+var OPEN        = 1;
+var IN_PROGRESS = 3;
+var CLOSED      = 6;
+
 var fs = require('fs');
 var readline = require('readline');
 var request = require('superagent');
@@ -13,15 +18,19 @@ load(function(_cfg, _db) {
   cfg = _cfg;
   db = _db;
   var cmd = process.argv[2];
-  if (cmd == 'ls')      return ls();
-  if (cmd == 'start')   return start(process.argv[3]);
-  if (cmd == 'stop')    return stop(process.argv[3], process.argv[4] == '--log');
-  if (cmd == 'log')     return log(process.argv[3], process.argv.splice(4).join(''));
-  if (cmd == 'running') return running();
-  if (cmd == 'resolve') return resolve(process.argv[3]);
-  if (cmd == 'reopen')  return reopen(process.argv[3]);
-  if (cmd == 'close')   return close(process.argv[3]);
-  if (cmd == 'search')  return search(process.argv.splice(3).join(' '));
+  if (cmd == 'ls')        return ls();
+  if (cmd == 'start')     return start(process.argv[3]);
+  if (cmd == 'stop')      return stop(process.argv[3], process.argv[4] == '--log');
+  if (cmd == 'log')       return log(process.argv[3], process.argv.splice(4).join(''));
+  if (cmd == 'running')   return running();
+  if (cmd == 'resolve')   return resolve(process.argv[3]);
+  if (cmd == 'reopen')    return reopen(process.argv[3]);
+  if (cmd == 'close')     return close(process.argv[3]);
+  if (cmd == 'search')    return search(process.argv.splice(3).join(' '));
+  if (cmd == 'describe')  return describe(process.argv[3]);
+  if (cmd == 'comments')  return comments(process.argv[3], process.argv[4] == '--reverse');
+  if (cmd == 'subtasks')  return subtasks(process.argv[3]);
+  if (cmd == 'comment')   return comment(process.argv[3], process.argv.slice(4));
   usage();
 });
 
@@ -103,7 +112,7 @@ function running() {
 }
 
 function resolve(issue) { transition(issue, 5);   }
-function reopen(issue)  { transition(issue, 3);   }
+function reopen(issue)  { transition(issue, IN_PROGRESS);   }
 function close(issue)   { transition(issue, 701); }
 
 function search(term) {
@@ -130,19 +139,127 @@ function search(term) {
   ;
 }
 
+function describe(issue) {
+  if (!issue) return usage();
+  request
+    .get(cfg.url+'rest/api/2/issue/'+issue)
+    .auth(cfg.user, cfg.password)
+    .end(function(res) {
+      if (!res.ok) return console.log(
+        res.body.errorMessages.join('\n')
+      );
+      var fields = res.body.fields;
+      var subtasks = fields.subtasks;
+      var comments = fields.comment.comments;
+      var formatted = [];
+      formatted.push(
+        ['Ticket:', res.body.key],
+        ['Summary:', field(fields, 'summary')],
+        ['Status:', field(fields, 'status.name')],
+        ['Reporter:', formatUser(fields.reporter)],
+        ['Assignee:', formatUser(fields.assignee)],
+        ['Labels:', limitWidth(fields.labels.join(', '), 66)],
+        ['Subtasks:', subtasks.length],
+        ['Comments:', comments.length],
+        ['Description:']
+      );
+      var table = formatTable(formatted);
+      table += '\n\n' + indent(limitWidth(field(fields, 'description'), 70), 4) + '\n';
+      console.log(table);
+    });
+}
+
+// List comments on an issue
+// list can be reversed so that newest are at the top
+function comments(issue, reverse) {
+  if (!issue) return usage();
+  request
+    .get(cfg.url+'rest/api/2/issue/'+issue)
+    .auth(cfg.user, cfg.password)
+    .end(function(res) {
+      if (!res.ok) return console.log(
+        res.body.errorMessages.join('\n')
+      );
+      var fields = res.body.fields;
+      var comments = fields.comment.comments;
+      if (reverse) {
+        comments = comments.reverse();
+      }
+      if (comments.length) {
+         console.log(formatComments(comments));
+      }
+      else {
+        console.log('No Comments');
+      }
+    });
+}
+
+// List subtasks of an issue
+function subtasks(issue) {
+  if (!issue) return usage();
+  request
+    .get(cfg.url+'rest/api/2/issue/'+issue)
+    .auth(cfg.user, cfg.password)
+    .end(function(res) {
+      if (!res.ok) return console.log(
+        res.body.errorMessages.join('\n')
+      );
+      var fields = res.body.fields;
+      var subtasks = fields.subtasks;
+      if (subtasks.length) {
+         console.log(formatSubtasks(subtasks));
+      }
+      else {
+        console.log('No Subtasks');
+      }
+    });
+}
+
+// Comment on an issue
+function comment(issue, messageList) {
+  if (!issue) return usage();
+  if (!messageList.length) return askFor(['Comment'], function(answers) {
+    commentOn(issue, answers['Comment']);
+  });
+  if (messageList.length > 1) return commentOn(issue, messageList.join(' '));
+  return commentOn(issue, messageList[0]);
+}
+
+// Helper to make POST request to JIRA API with comment
+function commentOn(issue, message) {
+  request
+    .post(cfg.url+'rest/api/2/issue/'+issue.toUpperCase()+'/comment/')
+    .auth(cfg.user, cfg.password)
+    .send({ body: addEscapes(message) })
+    .end(function(res) {
+      if (!res.ok) return console.log(
+        res.body.errorMessages.join('\n')
+      );
+      console.log('OK');
+    });
+}
+
+function addEscapes(string) {
+  return string.replace(/\\/g, '\\\\');
+}
+
 function usage() {
   console.log('usage: jilla <command> [<args>]');
   console.log('');
   console.log('Commands:');
-  console.log('   ls                    List open issues');
-  console.log('   start   <id>          Start working on an issue');
-  console.log('   stop    <id> (--log)  Stop working on an issue (and log time)');
-  console.log('   log     <id> <time>   Log work');
-  console.log('   running               List issues in progress');
-  console.log('   resolve <id>          Resolve issue');
-  console.log('   reopen  <id>          Reopen issue');
-  console.log('   close   <id>          Close issue');
-  console.log('   search  <term>        Find issues');
+  console.log('   ls                          List open issues');
+  console.log('   start     <id>              Start working on an issue');
+  console.log('   stop      <id> (--log)      Stop working on an issue (and log time)');
+  console.log('   log       <id> <time>       Log work');
+  console.log('   running                     List issues in progress');
+  console.log('   resolve   <id>              Resolve issue');
+  console.log('   reopen    <id>              Reopen issue');
+  console.log('   close     <id>              Close issue');
+  console.log('   search    <term>            Find issues');
+  console.log('   describe  <id>              Display issue synopsis');
+  console.log('   comments  <id> (--reverse)  Display comments on an issue');
+  console.log('   subtasks  <id>              List an issue\'s subtasks');
+  console.log('   comment   <id> "<message>"  Comment on an issue');
   console.log('');
 }
 
@@ -160,9 +277,10 @@ function transition(issue, id, cb) {
   ;
 }
 
-function formatTable(cols) {
+function formatTable(cols, options) {
   var rowLengths = [];
   var output = '';
+  options = options || {};
 
   for (var i=0; i<cols.length; i++) {
     for (var j=0; j<cols[i].length; j++) {
@@ -187,7 +305,7 @@ function formatTable(cols) {
         {right: cols[i][j].right}
       ) + ' ';
     }
-    output += truncate(col, 79);
+    output += options.wrapText ? limitWidth(col, 80) : truncate(col, 79);
     if (i < cols.length-1) output += '\n';
   }
 
@@ -213,7 +331,6 @@ function formatTable(cols) {
 }
 
 function formatPrio(name) {
-  if (name == 'Trivial')  return '';
   if (name == 'Minor')    return '!';
   if (name == 'Major')    return '!!';
   if (name == 'Critical') return '!!!';
@@ -245,3 +362,95 @@ function load(cb) {
     });
   }
 }
+
+// Get a field nested deep inside an object
+// Returns an empty string if the field doesn't exist or is null/undefined
+function field(obj, pathString) {
+  var fn;
+  if (!obj || typeof pathString !== 'string') return '';
+  return (fn = function(obj, path) {
+    var prop = path.shift();
+    if (!(prop in obj) || obj[prop] == null) return '';
+    if (path.length) {
+      return fn(obj[prop], path);
+    }
+    return String(obj[prop]);
+  })(obj, pathString.split('.'));
+}
+
+// Limit the widths of lines in a string
+// Assumes that lines are separated with a single \n newline character
+function limitWidth(string, len) {
+  var lines = string.split('\n');
+  var len = (typeof len === 'number') ? len : 80;
+  var chars;
+  var newLine;
+  for (var i = 0; i < lines.length; i++) {
+    if (lines[i].length > len) {
+      chars = lines[i].split('');
+      lines[i] = lines[i].slice(0, len - 1);
+      lines.splice(i + 1, 0, chars.slice(len - 1).join(''));
+    }
+  }
+  return lines.join('\n');
+}
+
+function formatUser(user, hideEmail) {
+  var formatted = field(user, 'displayName');
+  if (!hideEmail) {
+    formatted += ' <'+field(user, 'emailAddress')+'>';
+  }
+  return formatted;
+}
+
+function formatComments(comments) {
+  var formatted = [];
+  comments.forEach(function(comment) {
+    formatted.push(formatComment(comment));
+  });
+  return formatted.join('\n\n');
+}
+
+function formatComment(comment) {
+  var body = field(comment, 'body');
+  var user = formatUser(comment.author, true);
+  var indentAmount = 4;
+  var formattedComment = indent(limitWidth(body, 80 - indentAmount), indentAmount);
+  return 'Author: ' + user + '\n'
+       + 'Date:   ' + new Date(field(comment, 'updated')).toLocaleString() + '\n'
+       + '\n'
+       + formattedComment
+       + '\n';
+}
+
+function indent(text, by) {
+  var indent = createIndent(by);
+  var lines = text.split('\n');
+  for (var i = 0; i < lines.length; i++) {
+    lines[i] = indent + lines[i];
+  }
+  return lines.join('\n');
+}
+
+function createIndent(len) {
+  var indent = '';
+  while (len--) {
+    indent += ' ';
+  }
+  return indent;
+}
+
+function formatSubtasks(subtasks) {
+  var formatted = [];
+  subtasks.forEach(function(task) {
+    var status = parseInt(field(task, 'fields.status.id'), 10);
+    var closed = status === CLOSED;
+    formatted.push([
+      field(task, 'key'),
+      (closed ? '  (\u2713)  ' : '       '),
+      field(task, 'fields.summary')
+    ]);
+  });
+  return formatTable(formatted);
+}
+
