@@ -7,11 +7,6 @@ jilla is a Jira client for lazy people.
 
 Install [node.js](http://nodejs.org/). Then, in your shell:
 
-### For the official NPM package
-
-See https://github.com/godmodelabs/jilla for details on the NPM
-version.
-
 ```bash
 $ npm install -g jilla
 ```
