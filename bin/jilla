@@ -331,11 +331,11 @@ function formatTable(cols, options) {
 }
 
 function formatPrio(name) {
-  if (name == 'Trivial')  return '';
   if (name == 'Minor')    return '!';
   if (name == 'Major')    return '!!';
   if (name == 'Critical') return '!!!';
   if (name == 'Blocker')  return '!!!!';
+  return '';
 }
 
 function load(cb) {
