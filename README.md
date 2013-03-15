@@ -1,4 +1,3 @@
-
 # jilla
 
 jilla is a Jira client for lazy people.
@@ -153,6 +152,11 @@ Date:   Fri Mar 08 2013 10:27:36 GMT-0500 (EST)
     damn you \\ space coyote
 
 ```
+
+## Contributors
+
+* [juliangruber](https://github.com/juliangruber)
+* [plainview](https://github.com/plainview)
 
 ## License
 
