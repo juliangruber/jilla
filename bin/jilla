@@ -480,10 +480,9 @@ function formatSubtasks(subtasks) {
   var formatted = [];
   subtasks.forEach(function(task) {
     var status = field(task, 'fields.status.name');
-    var closed = (status === 'Closed' || status === 'Resolved');
     formatted.push([
       field(task, 'key'),
-      (closed ? '  (\u2713)  ' : '       '),
+      status,
       field(task, 'fields.summary')
     ]);
   });
