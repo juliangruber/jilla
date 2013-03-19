@@ -3,6 +3,7 @@
 // Statuses
 var OPEN        = 1;
 var IN_PROGRESS = 3;
+var RESOLVED    = 5;
 var CLOSED      = 6;
 
 var fs = require('fs');
@@ -111,9 +112,9 @@ function running() {
   console.log(formatTable(table));
 }
 
-function resolve(issue) { transition(issue, 5);   }
+function resolve(issue) { transition(issue, RESOLVED);   }
 function reopen(issue)  { transition(issue, IN_PROGRESS);   }
-function close(issue)   { transition(issue, 701); }
+function close(issue)   { transition(issue, CLOSED); }
 
 function search(term) {
   request
@@ -269,6 +270,7 @@ function transition(issue, id, cb) {
     .send({transition: {id: id}})
     .auth(cfg.user, cfg.password)
     .end(function(res) {
+      console.log(res.body);
       if (!res.ok) return console.log(
         res.body.errorMessages.join('\n')
       );
@@ -444,7 +446,7 @@ function formatSubtasks(subtasks) {
   var formatted = [];
   subtasks.forEach(function(task) {
     var status = parseInt(field(task, 'fields.status.id'), 10);
-    var closed = status === CLOSED;
+    var closed = status === CLOSED || status === RESOLVED;
     formatted.push([
       field(task, 'key'),
       (closed ? '  (\u2713)  ' : '       '),
