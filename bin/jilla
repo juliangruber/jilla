@@ -112,9 +112,44 @@ function running() {
   console.log(formatTable(table));
 }
 
-function resolve(issue) { transition(issue, RESOLVED);   }
-function reopen(issue)  { transition(issue, IN_PROGRESS);   }
-function close(issue)   { transition(issue, CLOSED); }
+function resolve(issue) {
+  getTransitionCode(issue, 'Resolved', curryIssue(issue, transition));
+}
+function reopen(issue) {
+  getTransitionCode(issue, 'In Progress', curryIssue(issue, transition));
+}
+function close(issue) {
+  getTransitionCode(issue, 'Closed', curryIssue(issue, transition));
+}
+
+function curryIssue(issue, fn) {
+  return function() {
+    var args = Array.prototype.slice.call(arguments, 0);
+    args.unshift(issue);
+    fn.apply(null, args);
+  };
+}
+
+// Get a transition ID, given an issue and the transition's name.
+function getTransitionCode(issue, transitionName, success) {
+  request
+    .get(cfg.url+'rest/api/2/issue/'+issue+'/transitions')
+    .auth(cfg.user, cfg.password)
+    .end(function(res) {
+      var transitionID;
+      if (!res.ok) return console.log(
+        res.body.errorMessages.join('\n')
+      );
+      res.body.transitions.some(function(transition) {
+        if (transition.name === transitionName) {
+          transitionID = transition.id;
+          return true;
+        }
+      });
+      if (!transitionID) return console.log('Invalid transition for this issue.');
+      success(transitionID);
+    });
+}
 
 function search(term) {
   request
@@ -270,7 +305,6 @@ function transition(issue, id, cb) {
     .send({transition: {id: id}})
     .auth(cfg.user, cfg.password)
     .end(function(res) {
-      console.log(res.body);
       if (!res.ok) return console.log(
         res.body.errorMessages.join('\n')
       );
@@ -445,8 +479,8 @@ function createIndent(len) {
 function formatSubtasks(subtasks) {
   var formatted = [];
   subtasks.forEach(function(task) {
-    var status = parseInt(field(task, 'fields.status.id'), 10);
-    var closed = status === CLOSED || status === RESOLVED;
+    var status = field(task, 'fields.status.name');
+    var closed = (status === 'Closed' || status === 'Resolved');
     formatted.push([
       field(task, 'key'),
       (closed ? '  (\u2713)  ' : '       '),
