@@ -171,6 +171,7 @@ $ jilla assign IDEA-2 homer
 2  Homer Simpson <homer@thesimpsons.net>
 Found multiple users, choose one by typing a number and hitting return: 2
 OK
+```
 
 ## License
 
