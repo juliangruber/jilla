@@ -135,7 +135,7 @@ Date:   Fri Mar 08 2013 10:27:36 GMT-0500 (EST)
 Author: Godfrey Jones
 Date:   Fri Mar 09 2013 08:00:12 GMT-0500 (EST)
 
-    Hello Homer, this is the voice of *God*...frey Jones.
+    Hello Homer, this is *God*...frey Jones.
 
 ```
 
@@ -146,7 +146,7 @@ $ jilla comments IDEA-2 --reverse
 Author: Godfrey Jones
 Date:   Fri Mar 09 2013 08:00:12 GMT-0500 (EST)
 
-    Hello Homer, this is the voice of *God*...frey Jones.
+    Hello Homer, this is *God*...frey Jones.
 
 Author: Scott Seaward
 Date:   Fri Mar 08 2013 10:27:36 GMT-0500 (EST)
