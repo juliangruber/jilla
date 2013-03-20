@@ -154,6 +154,22 @@ Date:   Fri Mar 08 2013 10:27:36 GMT-0500 (EST)
 
 ```
 
+### Search for users
+
+```bash
+$ jilla user hom
+homer     Homer         <homer_the_poet@gmail.com>
+hsimpson  Homer Simpson <homer@thesimpsons.net>
+
+### Assign a ticket to a user
+
+```bash
+$ jilla assign IDEA-2 homer
+1  Homer <homer_the_poet@gmail.com>
+2  Homer Simpson <homer@thesimpsons.net>
+Found multiple users, choose one by typing a number and hitting return: 2
+OK
+
 ## License
 
 (MIT)
