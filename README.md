@@ -161,6 +161,7 @@ Date:   Fri Mar 08 2013 10:27:36 GMT-0500 (EST)
 $ jilla user hom
 homer     Homer         <homer_the_poet@gmail.com>
 hsimpson  Homer Simpson <homer@thesimpsons.net>
+```
 
 ### Assign a ticket to a user
 
