@@ -170,7 +170,7 @@ $ jilla assign IDEA-2 homer
 1  Homer <homer_the_poet@gmail.com>
 2  Homer Simpson <homer@thesimpsons.net>
 Found multiple users, choose one by typing a number and hitting return: 2
-Assigned IDEA-2 to user "Homer Simpson <homer@thesimpsons.net>".'
+Assigned IDEA-2 to user "Homer Simpson <homer@thesimpsons.net>".
 ```
 
 ## License
