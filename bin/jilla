@@ -275,7 +275,7 @@ function assign(issue, userFragment) {
         if (!res.ok) return console.log(
           res.body.errorMessages.join('\n')
         );
-        console.log('OK');
+        console.log('Assigned ' + issue.toUppserCase() + ' to user "' + formatUser(user) + '".');
       });
   });
 }
