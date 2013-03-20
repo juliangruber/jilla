@@ -42,8 +42,9 @@ Commands:
    describe  <id>              Display issue synopsis
    comments  <id> (--reverse)  Display comments on an issue
    subtasks  <id>              List an issue's subtasks
-   comment   <id> <message>    Comment on an issue
-
+   comment   <id> "<message>"  Comment on an issue
+   user      <term>            Search for a user
+   assign    <id> <user>       Assign issue to a user
 ```
 
 ### Show open issues
