@@ -1,6 +1,6 @@
 {
     "name": "jilla",
-    "version": "0.2.2",
+    "version": "0.3.0",
     "author": "Julian Gruber <julian@juliangruber.com>",
     "repository": "git://github.com/juliangruber/jilla",
     "dependencies": {

@@ -1,4 +1,3 @@
-
 # jilla
 
 jilla is a Jira client for lazy people.
@@ -172,6 +171,10 @@ $ jilla assign IDEA-2 homer
 Found multiple users, choose one by typing a number and hitting return: 2
 Assigned IDEA-2 to user "Homer Simpson <homer@thesimpsons.net>".
 ```
+## Contributors
+
+* [juliangruber](https://github.com/juliangruber)
+* [plainview](https://github.com/plainview)
 
 ## License
 
