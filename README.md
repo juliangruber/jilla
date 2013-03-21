@@ -172,7 +172,7 @@ Found multiple users, choose one by typing a number and hitting return: 2
 Assigned IDEA-2 to user "Homer Simpson <homer@thesimpsons.net>".
 ```
 
-### Security Warning
+## Security Warning
 
 Jilla currently stores your JIRA credentials as plaintext.
 Use a password for JIRA that you don't use anywhere else.
