@@ -41,8 +41,9 @@ Commands:
    describe  <id>              Display issue synopsis
    comments  <id> (--reverse)  Display comments on an issue
    subtasks  <id>              List an issue's subtasks
-   comment   <id> <message>    Comment on an issue
-
+   comment   <id> "<message>"  Comment on an issue
+   user      <term>            Search for a user
+   assign    <id> <user>       Assign issue to a user
 ```
 
 ### Show open issues
@@ -133,7 +134,7 @@ Date:   Fri Mar 08 2013 10:27:36 GMT-0500 (EST)
 Author: Godfrey Jones
 Date:   Fri Mar 09 2013 08:00:12 GMT-0500 (EST)
 
-    Hello Homer, this is the voice of *God*...frey Jones.
+    Hello Homer, this is *God*...frey Jones.
 
 ```
 
@@ -144,7 +145,7 @@ $ jilla comments IDEA-2 --reverse
 Author: Godfrey Jones
 Date:   Fri Mar 09 2013 08:00:12 GMT-0500 (EST)
 
-    Hello Homer, this is the voice of *God*...frey Jones.
+    Hello Homer, this is *God*...frey Jones.
 
 Author: Scott Seaward
 Date:   Fri Mar 08 2013 10:27:36 GMT-0500 (EST)
@@ -153,6 +154,23 @@ Date:   Fri Mar 08 2013 10:27:36 GMT-0500 (EST)
 
 ```
 
+### Search for users
+
+```bash
+$ jilla user hom
+homer     Homer         <homer_the_poet@gmail.com>
+hsimpson  Homer Simpson <homer@thesimpsons.net>
+```
+
+### Assign a ticket to a user
+
+```bash
+$ jilla assign IDEA-2 homer
+1  Homer <homer_the_poet@gmail.com>
+2  Homer Simpson <homer@thesimpsons.net>
+Found multiple users, choose one by typing a number and hitting return: 2
+Assigned IDEA-2 to user "Homer Simpson <homer@thesimpsons.net>".
+```
 ## Contributors
 
 * [juliangruber](https://github.com/juliangruber)
