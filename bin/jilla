@@ -28,6 +28,7 @@ load(function(_cfg, _db) {
   if (cmd == 'resolve')   return resolve(process.argv[3]);
   if (cmd == 'reopen')    return reopen(process.argv[3]);
   if (cmd == 'close')     return close(process.argv[3]);
+  if (cmd == 'needinfo')  return needInfo(process.argv[3]);
   if (cmd == 'search')    return search(process.argv.splice(3).join(' '));
   if (cmd == 'describe')  return describe(process.argv[3]);
   if (cmd == 'comments')  return comments(process.argv[3], process.argv[4] == '--reverse');
@@ -127,6 +128,9 @@ function reopen(issue) {
 }
 function close(issue) {
   getTransitionCode(issue, 'Closed', curry(transition, issue));
+}
+function needInfo(issue) {
+  getTransitionCode(issue, 'Needs Info', curry(transition, issue));
 }
 
 function search(term) {
