@@ -452,27 +452,26 @@ function formatPrio(name) {
   return name;
 }
 
-function homeFolder() {
+function homeDir() {
   var homeEnvVar = (process.platform == 'win32') ? 'USERPROFILE' : 'HOME';
   return process.env[homeEnvVar];
 }
 
-function getJillaFolder() {
-  return homeFolder()+'/.jilla/';
+function getJillaDir() {
+  return homeDir()+'/.jilla/';
 }
 
 function getCfgPath() {
-  return getJillaFolder()+'cfg.json';
+  return getJillaDir()+'cfg.json';
 }
 
 function getDbPath() {
-  return getJillaFolder()+'db.json';
+  return getJillaDir()+'db.json';
 }
 
 function load(cb) {
   var cfgPath = getCfgPath(),
       dbPath = getDbPath();
-  console.log(cfgPath, dbPath);
   if (fs.existsSync(cfgPath) && fs.existsSync(dbPath)) {
     cb(require(cfgPath), JSONStore(dbPath));
   } else {
@@ -483,8 +482,8 @@ function load(cb) {
 function configBasicAuth(cb) {
   var cfgPath = getCfgPath(),
       dbPath = getDbPath(),
-      jillaPath = getJillaFolder();
-  if (!fs.existsSync(jillaPath)) fs.mkdirSync(jillaPath);
+      jillaDir = getJillaDir();
+  if (!fs.existsSync(jillaDir)) fs.mkdirSync(jillaDir);
   askFor(['Jira Url', 'Username', 'Password'], function(answers) {
     console.log('Good to go!');
     cfg = {
@@ -511,7 +510,7 @@ function field(obj, pathString) {
     }
     return String(obj[prop]);
   }
-  fn(obj, pathString.split('.'));
+  return fn(obj, pathString.split('.'));
 }
 
 // Limit the widths of lines in a string
