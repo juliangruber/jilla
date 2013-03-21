@@ -19,6 +19,7 @@ load(function(_cfg, _db) {
   cfg = _cfg;
   db = _db;
   var cmd = process.argv[2];
+  if (cmd == 'config')    return config();
   if (cmd == 'ls')        return ls();
   if (cmd == 'start')     return start(process.argv[3]);
   if (cmd == 'stop')      return stop(process.argv[3], process.argv[4] == '--log');
@@ -36,6 +37,10 @@ load(function(_cfg, _db) {
   if (cmd == 'assign')    return assign(process.argv[3], process.argv.slice(4));
   usage();
 });
+
+function config() {
+  configBasicAuth();
+}
 
 function ls() {
   request
@@ -284,6 +289,7 @@ function usage() {
   console.log('usage: jilla <command> [<args>]');
   console.log('');
   console.log('Commands:');
+  console.log('   config                      Update jilla configuration');
   console.log('   ls                          List open issues');
   console.log('   start     <id>              Start working on an issue');
   console.log('   stop      <id> (--log)      Stop working on an issue (and log time)');
@@ -387,10 +393,11 @@ function curry(callback) {
 function formatTable(cols, options) {
   var rowLengths = [];
   var output = '';
+  var i, j;
   options = options || {};
 
-  for (var i=0; i<cols.length; i++) {
-    for (var j=0; j<cols[i].length; j++) {
+  for (i=0; i<cols.length; i++) {
+    for (j=0; j<cols[i].length; j++) {
       if (!rowLengths[j]) rowLengths[j] = 0;
       if (typeof cols[i][j] != 'object') cols[i][j] = {data:cols[i][j]};
       if (cols[i][j].data.length > rowLengths[j]) {
@@ -399,9 +406,9 @@ function formatTable(cols, options) {
     }
   }
 
-  for (var i=0; i<cols.length; i++) {
+  for (i=0; i<cols.length; i++) {
     var col = '';
-    for (var j=0; j<cols[i].length; j++) {
+    for (j=0; j<cols[i].length; j++) {
       if (j == cols[i].length-1) {
         col += cols[i][j].data;
         continue;
@@ -445,51 +452,71 @@ function formatPrio(name) {
   return name;
 }
 
-function load(cb) {
-  var home = (process.platform == 'win32') ? 'USERPROFILE' : 'HOME';
-  var jillaPath = process.env[home]+'/.jilla/';
-  var cfgPath = jillaPath+'cfg.json';
-  var dbPath = jillaPath+'db.json';
+function homeFolder() {
+  var homeEnvVar = (process.platform == 'win32') ? 'USERPROFILE' : 'HOME';
+  return process.env[homeEnvVar];
+}
 
+function getJillaPath() {
+  return homeFolder()+'/.jilla/';
+}
+
+function getCfgPath() {
+  return getJillaPath()+'cfg.json';
+}
+
+function getDbPath() {
+  var dbPath = getJillaPath()+'db.json';
+}
+
+function load(cb) {
+  var cfgPath = getCfgPath(),
+      dbPath = getDbPath();
   if (fs.existsSync(cfgPath) && fs.existsSync(dbPath)) {
     cb(require(cfgPath), JSONStore(dbPath));
   } else {
-    if (!fs.existsSync(jillaPath)) fs.mkdirSync(jillaPath);
-    askFor(['Jira Url', 'Username', 'Password'], function(answers) {
-      console.log('Good to go!');
-      cfg = {
-        url     : answers['Jira Url'],
-        user    : answers['Username'],
-        password: answers['Password']
-      };
-      if (cfg.url[cfg.url.length-1] != '/') cfg.url += '/';
-      // TODO: Store password securely
-      fs.writeFileSync(cfgPath, JSON.stringify(cfg));
-      cb(cfg, JSONStore(dbPath));
-    });
+    configBasicAuth(cb);
   }
+}
+
+function configBasicAuth(cb) {
+  var cfgPath = getCfgPath(),
+      dbPath = getDbPath();
+  if (!fs.existsSync(jillaPath)) fs.mkdirSync(jillaPath);
+  askFor(['Jira Url', 'Username', 'Password'], function(answers) {
+    console.log('Good to go!');
+    cfg = {
+      url     : answers['Jira Url'],
+      user    : answers['Username'],
+      password: answers['Password']
+    };
+    if (cfg.url[cfg.url.length-1] != '/') cfg.url += '/';
+    // TODO: Store password securely
+    fs.writeFileSync(cfgPath, JSON.stringify(cfg));
+    cb(cfg, JSONStore(dbPath));
+  });
 }
 
 // Get a field nested deep inside an object
 // Returns an empty string if the field doesn't exist or is null/undefined
 function field(obj, pathString) {
-  var fn;
   if (!obj || typeof pathString !== 'string') return '';
-  return (fn = function(obj, path) {
+  function fn(obj, path) {
     var prop = path.shift();
     if (!(prop in obj) || obj[prop] == null) return '';
     if (path.length) {
       return fn(obj[prop], path);
     }
     return String(obj[prop]);
-  })(obj, pathString.split('.'));
+  }
+  fn(obj, pathString.split('.'));
 }
 
 // Limit the widths of lines in a string
 // Assumes that lines are separated with a single \n newline character
 function limitWidth(string, len) {
   var lines = string.split('\n');
-  var len = (typeof len === 'number') ? len : 80;
+  len = (typeof len === 'number') ? len : 80;
   var chars;
   var newLine;
   for (var i = 0; i < lines.length; i++) {
@@ -531,10 +558,10 @@ function formatComment(comment) {
 }
 
 function indent(text, by) {
-  var indent = createIndent(by);
+  var spaces = createIndent(by);
   var lines = text.split('\n');
   for (var i = 0; i < lines.length; i++) {
-    lines[i] = indent + lines[i];
+    lines[i] = spaces + lines[i];
   }
   return lines.join('\n');
 }
