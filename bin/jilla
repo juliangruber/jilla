@@ -494,7 +494,7 @@ function configBasicAuth(cb) {
     if (cfg.url[cfg.url.length-1] != '/') cfg.url += '/';
     // TODO: Store password securely
     fs.writeFileSync(cfgPath, JSON.stringify(cfg));
-    cb(cfg, JSONStore(dbPath));
+    if (typeof cb === 'function') cb(cfg, JSONStore(dbPath));
   });
 }
 
