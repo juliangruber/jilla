@@ -266,6 +266,7 @@ function user(userFragment) {
 }
 
 function assign(issue, userFragment) {
+  var issueUpper = issue.toUpperCase();
   getSingleUser(userFragment, function(user) {
     if (!user) {
       return console.log(
@@ -273,14 +274,14 @@ function assign(issue, userFragment) {
       );
     }
     request
-      .put(cfg.url+'rest/api/2/issue/'+issue.toUpperCase()+'/assignee')
+      .put(cfg.url+'rest/api/2/issue/'+issueUpper+'/assignee')
       .auth(cfg.user, cfg.password)
       .send({ 'name': user.name })
       .end(function(res) {
         if (!res.ok) return console.log(
           res.body.errorMessages.join('\n')
         );
-        console.log('Assigned ' + issue.toUppserCase() + ' to user "' + formatUser(user) + '".');
+        console.log('Assigned '+issueUpper+' to user "'+formatUser(user)+'".');
       });
   });
 }
