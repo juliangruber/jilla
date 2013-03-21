@@ -457,21 +457,22 @@ function homeFolder() {
   return process.env[homeEnvVar];
 }
 
-function getJillaPath() {
+function getJillaFolder() {
   return homeFolder()+'/.jilla/';
 }
 
 function getCfgPath() {
-  return getJillaPath()+'cfg.json';
+  return getJillaFolder()+'cfg.json';
 }
 
 function getDbPath() {
-  var dbPath = getJillaPath()+'db.json';
+  return getJillaFolder()+'db.json';
 }
 
 function load(cb) {
   var cfgPath = getCfgPath(),
       dbPath = getDbPath();
+  console.log(cfgPath, dbPath);
   if (fs.existsSync(cfgPath) && fs.existsSync(dbPath)) {
     cb(require(cfgPath), JSONStore(dbPath));
   } else {
@@ -481,7 +482,8 @@ function load(cb) {
 
 function configBasicAuth(cb) {
   var cfgPath = getCfgPath(),
-      dbPath = getDbPath();
+      dbPath = getDbPath(),
+      jillaPath = getJillaFolder();
   if (!fs.existsSync(jillaPath)) fs.mkdirSync(jillaPath);
   askFor(['Jira Url', 'Username', 'Password'], function(answers) {
     console.log('Good to go!');
