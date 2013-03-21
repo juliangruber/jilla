@@ -171,6 +171,17 @@ $ jilla assign IDEA-2 homer
 Found multiple users, choose one by typing a number and hitting return: 2
 Assigned IDEA-2 to user "Homer Simpson <homer@thesimpsons.net>".
 ```
+
+### Security Warning
+
+Jilla currently stores your JIRA credentials as plaintext.
+Use a password for JIRA that you don't use anywhere else.
+You can secure your credentials by issuing the following command on linux:
+
+```
+chmod 700 ~/.jilla
+```
+
 ## Contributors
 
 * [juliangruber](https://github.com/juliangruber)
