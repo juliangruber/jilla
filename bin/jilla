@@ -3,6 +3,7 @@
 // Statuses
 var OPEN        = 1;
 var IN_PROGRESS = 3;
+var RESOLVED    = 5;
 var CLOSED      = 6;
 
 var fs = require('fs');
@@ -31,6 +32,8 @@ load(function(_cfg, _db) {
   if (cmd == 'comments')  return comments(process.argv[3], process.argv[4] == '--reverse');
   if (cmd == 'subtasks')  return subtasks(process.argv[3]);
   if (cmd == 'comment')   return comment(process.argv[3], process.argv.slice(4));
+  if (cmd == 'user')      return user(process.argv.slice(3));
+  if (cmd == 'assign')    return assign(process.argv[3], process.argv.slice(4));
   usage();
 });
 
@@ -111,9 +114,15 @@ function running() {
   console.log(formatTable(table));
 }
 
-function resolve(issue) { transition(issue, 5);   }
-function reopen(issue)  { transition(issue, IN_PROGRESS);   }
-function close(issue)   { transition(issue, 701); }
+function resolve(issue) {
+  getTransitionCode(issue, 'Resolved', curry(transition, issue));
+}
+function reopen(issue) {
+  getTransitionCode(issue, 'In Progress', curry(transition, issue));
+}
+function close(issue) {
+  getTransitionCode(issue, 'Closed', curry(transition, issue));
+}
 
 function search(term) {
   request
@@ -239,8 +248,36 @@ function commentOn(issue, message) {
     });
 }
 
-function addEscapes(string) {
-  return string.replace(/\\/g, '\\\\');
+function user(userFragment) {
+  searchUsers(userFragment, function(users) {
+    var results = [];
+    users.forEach(function(u) {
+      results.push([
+        u.name, u.displayName, '<'+u.emailAddress+'>'
+      ]);
+    });
+    console.log(formatTable(results));
+  });
+}
+
+function assign(issue, userFragment) {
+  getSingleUser(userFragment, function(user) {
+    if (!user) {
+      return console.log(
+        'No user found with fragment, "' + userFragment + '".'
+      );
+    }
+    request
+      .put(cfg.url+'rest/api/2/issue/'+issue.toUpperCase()+'/assignee')
+      .auth(cfg.user, cfg.password)
+      .send({ 'name': user.name })
+      .end(function(res) {
+        if (!res.ok) return console.log(
+          res.body.errorMessages.join('\n')
+        );
+        console.log('Assigned ' + issue.toUppserCase() + ' to user "' + formatUser(user) + '".');
+      });
+  });
 }
 
 function usage() {
@@ -260,6 +297,8 @@ function usage() {
   console.log('   comments  <id> (--reverse)  Display comments on an issue');
   console.log('   subtasks  <id>              List an issue\'s subtasks');
   console.log('   comment   <id> "<message>"  Comment on an issue');
+  console.log('   user      <term>            Search for a user');
+  console.log('   assign    <id> <user>       Assign issue to a user');
   console.log('');
 }
 
@@ -275,6 +314,74 @@ function transition(issue, id, cb) {
       if (cb) cb();
     })
   ;
+}
+
+// Get a transition ID, given an issue and the transition's name.
+function getTransitionCode(issue, transitionName, success) {
+  request
+    .get(cfg.url+'rest/api/2/issue/'+issue+'/transitions')
+    .auth(cfg.user, cfg.password)
+    .end(function(res) {
+      var transitionID;
+      if (!res.ok) return console.log(
+        res.body.errorMessages.join('\n')
+      );
+      res.body.transitions.some(function(transition) {
+        if (transition.name === transitionName) {
+          transitionID = transition.id;
+          return true;
+        }
+      });
+      if (!transitionID) return console.log('Invalid transition for this issue.');
+      success(transitionID);
+    });
+}
+
+// Get all users matching a given fragment of text.
+function searchUsers(userFragment, callback) {
+  request
+    .get(cfg.url+'rest/api/2/user/search/?username='+userFragment)
+    .auth(cfg.user, cfg.password)
+    .end(function(res) {
+      var users;
+      if (!res.ok) return console.log(
+        res.body.errorMessages.join('\n')
+      );
+      users = res.body;
+      callback(users);
+    });
+}
+
+// Get a single user matching a given search fragment.
+// If multiple users match the fragment then a menu is presented
+// to choose which user is the correct one.
+function getSingleUser(userFragment, callback) {
+  var request = 'Found multiple users, choose one by typing a number and hitting return';
+  searchUsers(userFragment, function(users) {
+    if (users.length <= 1) {
+      callback(users[0]);
+    }
+    else if (users.length > 1) {
+      users.forEach(function(u, i) {
+        console.log((i + 1) + '  ' + formatUser(u));
+      });
+      askFor([request], function(results) {
+        var userIndex = parseInt(results[request], 10) - 1;
+        if (!(userIndex in users)) {
+          return console.log('Invalid user selection.');
+        }
+        callback(users[userIndex]);
+      });
+    }
+  });
+}
+
+function curry(callback) {
+  var curryArgs = Array.prototype.slice.call(arguments, 1);
+  return function() {
+    var callbackArgs = curryArgs.concat(Array.prototype.slice.call(arguments, 0));
+    callback.apply(null, callbackArgs);
+  };
 }
 
 function formatTable(cols, options) {
@@ -443,14 +550,17 @@ function createIndent(len) {
 function formatSubtasks(subtasks) {
   var formatted = [];
   subtasks.forEach(function(task) {
-    var status = parseInt(field(task, 'fields.status.id'), 10);
-    var closed = status === CLOSED;
+    var status = field(task, 'fields.status.name');
     formatted.push([
       field(task, 'key'),
-      (closed ? '  (\u2713)  ' : '       '),
+      status,
       field(task, 'fields.summary')
     ]);
   });
   return formatTable(formatted);
+}
+
+function addEscapes(string) {
+  return string.replace(/\\/g, '\\\\');
 }
 
