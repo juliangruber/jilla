@@ -303,6 +303,7 @@ function usage() {
   console.log('   resolve   <id>              Resolve issue');
   console.log('   reopen    <id>              Reopen issue');
   console.log('   close     <id>              Close issue');
+  console.log('   needinfo  <id>              Set issue status to Needs Info');
   console.log('   search    <term>            Find issues');
   console.log('   describe  <id>              Display issue synopsis');
   console.log('   comments  <id> (--reverse)  Display comments on an issue');
