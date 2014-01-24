@@ -1,12 +1,17 @@
 #!/usr/bin/env node
 
+// Statuses
+var OPEN        = 1;
+var IN_PROGRESS = 3;
+var RESOLVED    = 5;
+var CLOSED      = 6;
+
 var fs = require('fs');
 var readline = require('readline');
 var request = require('superagent');
 var span = require('span');
 var JSONStore = require('json-store');
 var askFor = require('ask-for');
-var http = require('http');
 require('superagent-proxy')(request);
 
 var proxy = process.env.http_proxy;
@@ -16,9 +21,7 @@ var cfg, db;
 load(function(_cfg, _db) {
   cfg = _cfg;
   db = _db;
-  proxy = cfg.proxy || proxy;
   var cmd = process.argv[2];
-  if (cmd == 'sprint')    return sprint();
   if (cmd == 'config')    return config();
   if (cmd == 'ls')        return ls();
   if (cmd == 'start')     return start(process.argv[3]);
@@ -36,8 +39,6 @@ load(function(_cfg, _db) {
   if (cmd == 'comment')   return comment(process.argv[3], process.argv.slice(4));
   if (cmd == 'user')      return user(process.argv.slice(3));
   if (cmd == 'assign')    return assign(process.argv[3], process.argv.slice(4));
-  if (cmd == 'status')    return setStatus(undefined, new Array (process.argv[3], process.argv[4]));
-  if (cmd == 'statuses')  return statuses();
   usage();
 });
 
@@ -45,54 +46,9 @@ function config() {
   configBasicAuth();
 }
 
-function statusesObject (func, issue, args){
-  request
-    .get (cfg.url + 'rest/api/2/' + (issue == undefined ? 'status': 'issue/' + issue + '/transitions'))
-    .proxy (proxy)
-    .set('Content-Type', 'application/json')
-    .auth(cfg.user, cfg.password)
-    .end(function(res) {
-      if (res.body.transitions){
-        return func (res.body.transitions, args);
-      }
-      return func (res.body, args);
-    });
-}
-
-function statusesEnd (obj, args){
-  for (var status in obj){
-    console.log (obj[status].id + " " + obj[status].name);
-  }
-}
-
-function statuses (){
-  statusesObject (statusesEnd, undefined, undefined);
-}
-
-function setStatus (obj, args){
-  if (obj == undefined){
-    statusesObject (setStatus, args [0], args);
-  }else{
-    var newStatus = -1;
-    for (var index in obj){
-      if (obj[index].name == args [1] ||
-          obj[index].id == args [1]){
-        newStatus = obj[index].id;
-      }
-    }
-    if (newStatus == -1){
-      console.log ("Status not found");
-      console.log ("Statuses available :");
-      statusesEnd (obj, undefined);
-    }else{
-      transition(args [0], newStatus);
-    }
-  }
-}
-
 function ls() {
   request
-    .get (cfg.url + 'rest/api/2/search?jql=category="'+cfg.category+'"AND+status+in+(Open,"In+Progress",Reopened)+order+by+due+ASC,+priority+DESC')
+    .get(cfg.url+'rest/api/2/search?jql=assignee='+cfg.user+'+AND+status+in+(Open,"In+Progress",Reopened)+order+by+due+ASC,+priority+DESC')
     .proxy (proxy)
     .set('Content-Type', 'application/json')
     .auth(cfg.user, cfg.password)
@@ -102,11 +58,11 @@ function ls() {
       );
       var issues = res.body.issues;
       var table = [];
-      for (var i = 0 ; i< issues.length ; i++) {
+      for (var i=0; i<issues.length; i++) {
         table.push([
           issues[i].key,
           '<'+issues[i].fields.reporter.name+'>',
-          {data: formatPrio((issues[i].fields.priority ? issues[i].fields.priority.name : "unknown")), right: true},
+          {data: formatPrio((issues[i].fields.priority == undefined ? "unknown" : issues[i].fields.priority.name)), right: true},
           issues[i].fields.summary
         ]);
       }
@@ -116,7 +72,7 @@ function ls() {
 }
 
 function start(issue) {
-  transition(issue, 1, function() {
+  transition(issue, 4, function() {
     db.set(issue, Date.now());
   });
 }
@@ -143,7 +99,6 @@ function log(issue, time) {
   if (time < 60) time = 60;
   request
     .post(cfg.url+'rest/api/2/issue/'+issue+'/worklog')
-    .proxy (proxy)
     .send({timeSpentSeconds: time})
     .auth(cfg.user, cfg.password)
     .end(function(res) {
@@ -183,94 +138,26 @@ function needInfo(issue) {
 }
 
 function search(term) {
-  var nbfound = 0;
   request
-    .get(cfg.url+'rest/api/2/search?jql=category="'+cfg.category+'"AND+%28+summary+~+"'+term+'"+OR+description+~+"'+term+'"+OR+comment+~+"'+term+'"+%29+order+by+due+ASC,+priority+DESC')
+    .get(cfg.url+'rest/api/2/search?jql=summary+~+"'+term+'"+OR+description+~+"'+term+'"+OR+comment+~+"'+term+'"+order+by+due+ASC,+priority+DESC')
     .proxy (proxy)
     .set('Content-Type', 'application/json')
     .auth(cfg.user, cfg.password)
     .end(function(res) {
-      if (!res.ok) return;
+      if (!res.ok) return console.log(
+        res.body.errorMessages.join('\n')
+      );
       var issues = res.body.issues;
       var table = [];
       for (var i=0; i<issues.length; i++) {
         table.push([
           issues[i].key,
           '<'+issues[i].fields.reporter.name+'>',
-          {data: formatPrio((issues[i].fields.priority ? issues[i].fields.priority.name : "unknown")), right: true},
+          {data: formatPrio((issues[i].fields.priority == undefined ? "unknown" : issues[i].fields.priority.name)), right: true},
           issues[i].fields.summary
         ]);
       }
-      if (table.length > 0){
-        console.log(formatTable(table));
-      }
-    })
-  ;
-  request
-    .get(cfg.url+'rest/api/2/search?jql=category="'+cfg.category+'"AND+issueKey+=+"'+term+'"+order+by+due+ASC,+priority+DESC')
-    .proxy (proxy)
-    .set('Content-Type', 'application/json')
-    .auth(cfg.user, cfg.password)
-    .end(function(res) {
-      if (!res.ok) return;
-      var issues = res.body.issues;
-      var table = [];
-      for (var i=0; i<issues.length; i++) {
-        table.push([
-          issues[i].key,
-          '<'+issues[i].fields.reporter.name+'>',
-          {data: formatPrio((issues[i].fields.priority ? issues[i].fields.priority.name : "unknown")), right: true},
-          issues[i].fields.summary
-        ]);
-      }
-      if (table.length > 0){
-        console.log(formatTable(table));
-      }
-
-    })
-  ;
-  request
-    .get(cfg.url+'rest/api/2/search?jql=category="'+cfg.category+'"AND+project+=+"'+term+'"+order+by+due+ASC,+priority+DESC')
-    .proxy (proxy)
-    .set('Content-Type', 'application/json')
-    .auth(cfg.user, cfg.password)
-    .end(function(res) {
-      if (!res.ok) return;
-      var issues = res.body.issues;
-      var table = [];
-      for (var i=0; i<issues.length; i++) {
-        table.push([
-          issues[i].key,
-          '<'+issues[i].fields.reporter.name+'>',
-          {data: formatPrio((issues[i].fields.priority ? issues[i].fields.priority.name : "unknown")), right: true},
-          issues[i].fields.summary
-        ]);
-      }
-      if (table.length > 0){
-        console.log(formatTable(table));
-      }
-    })
-  ;
-  request
-    .get(cfg.url+'rest/api/2/search?jql=category+=+"'+term+'"+order+by+due+ASC,+priority+DESC')
-    .proxy (proxy)
-    .set('Content-Type', 'application/json')
-    .auth(cfg.user, cfg.password)
-    .end(function(res) {
-      if (!res.ok) return;
-      var issues = res.body.issues;
-      var table = [];
-      for (var i=0; i<issues.length; i++) {
-        table.push([
-          issues[i].key,
-          '<'+issues[i].fields.reporter.name+'>',
-          {data: formatPrio((issues[i].fields.priority ? issues[i].fields.priority.name : "unknown")), right: true},
-          issues[i].fields.summary
-        ]);
-      }
-      if (table.length > 0){
-        console.log(formatTable(table));
-      }
+      console.log(formatTable(table));
     })
   ;
 }
@@ -295,22 +182,14 @@ function describe(issue) {
         ['Status:', field(fields, 'status.name')],
         ['Reporter:', formatUser(fields.reporter)],
         ['Assignee:', formatUser(fields.assignee)],
-        ['Labels:', prettyPrint(fields.labels.join(', '), 66)],
+        ['Labels:', limitWidth(fields.labels.join(', '), 66)],
         ['Subtasks:', subtasks.length],
         ['Comments:', comments.length],
         ['Description:']
       );
       var table = formatTable(formatted);
-      table += '\n\n' + createIndent (process.stdout.columns - 1, '\u2581') + "\n" +
-               indent(prettyPrint(field(fields, 'description'), process.stdout.columns - 10), 8) + '\n';
-      table+="\u2503" + createIndent (process.stdout.columns - 1, '\u2581') + "\n";
+      table += '\n\n' + indent(limitWidth(field(fields, 'description'), 70), 4) + '\n';
       console.log(table);
-      if (res.body.fields.parent && res.body.fields.parent.key){
-        console.log (createIndent (process.stdout.columns - 1, '\u2581'));
-        console.log ("PARENT");
-        console.log (createIndent (process.stdout.columns - 1, '\u2581'));
-        describe (res.body.fields.parent.key);
-      }
     });
 }
 
@@ -376,7 +255,7 @@ function comment(issue, messageList) {
 function commentOn(issue, message) {
   request
     .post(cfg.url+'rest/api/2/issue/'+issue.toUpperCase()+'/comment/')
-    .proxy(proxy)
+    .proxy (proxy)
     .auth(cfg.user, cfg.password)
     .send({ body: addEscapes(message) })
     .end(function(res) {
@@ -421,75 +300,12 @@ function assign(issue, userFragment) {
   });
 }
 
-function sprint (){
-    request
-      .get(cfg.url+'rest/greenhopper/1.0/rapidview')
-      .proxy (proxy)
-      .auth(cfg.user, cfg.password).end(function(res) {
-        var id = -1;
-        for (var i in res.body.views){
-          if (res.body.views [i].name == cfg.sprintTeam){
-            id = res.body.views [i].id;
-          }
-        }
-        if (id == -1){
-          return console.log ("Sprint team name incorrect, please config again");
-        }
-        request
-      .get(cfg.url+'rest/greenhopper/1.0/sprintquery/' + id)
-      .proxy (proxy)
-      .auth(cfg.user, cfg.password).end(function(res) {
-          var sprintid = -1;
-          for (var i in res.body.sprints){
-            if (res.body.sprints [i].state == "ACTIVE"){
-              sprintid = res.body.sprints [i].id;
-            }
-          }
-        if (sprintid == -1){
-          return console.log ("No sprint is currently active");
-        }
-        request
-      .get(cfg.url+'rest/greenhopper/1.0/rapid/charts/sprintreport?rapidViewId='+id+'&sprintId='+sprintid)
-      .proxy (proxy)
-      .auth(cfg.user, cfg.password).end(function(res) {
-      var completedIssues = [];
-      var incompletedIssues = [];
-      var puntedIssues = [];
-      for (var i in res.body.contents.completedIssues){
-        completedIssues.push (res.body.contents.completedIssues [i].key);
-      }
-      for (var i in res.body.contents.incompletedIssues){
-        incompletedIssues.push (res.body.contents.incompletedIssues [i].key);
-      }
-      for (var i in res.body.contents.puntedIssues){
-        puntedIssues.push (res.body.contents.puntedIssues [i].key);
-      }
-      var formatted = [];
-      formatted.push(
-        ['Name               :', res.body.sprint.name],
-        ['State              :', res.body.sprint.state],
-        ['Start Date         :', res.body.sprint.startDate],
-        ['End Date           :', res.body.sprint.endDate],
-        ['Complete Date      :', res.body.sprint.completeDate]	
-      );
-      var table = formatTable(formatted);
-      table += "\n\nCompleted Issues   : " + (completedIssues.length == 0 ? "0" : completedIssues) + "\n";
-      table += "Incompleted Issues : " + (incompletedIssues.length == 0 ? "0" : incompletedIssues) + "\n";
-      table += "Punted Issues      : " + (puntedIssues.length == 0 ? "0" : puntedIssues) + "\n";
-      console.log (table);
-      });
-      });
-      });
-}
-
 function usage() {
   console.log('usage: jilla <command> [<args>]');
   console.log('');
   console.log('Commands:');
   console.log('   config                      Update jilla configuration');
   console.log('   ls                          List open issues');
-  console.log('   statuses                    Different statuses');
-  console.log('   sprint                      All sprint issues (JIRA Agile only)');
   console.log('   start     <id>              Start working on an issue');
   console.log('   stop      <id> (--log)      Stop working on an issue (and log time)');
   console.log('   log       <id> <time>       Log work');
@@ -498,7 +314,6 @@ function usage() {
   console.log('   reopen    <id>              Reopen issue');
   console.log('   close     <id>              Close issue');
   console.log('   needinfo  <id>              Set issue status to Needs Info');
-  console.log('   status    <id> (status)     Changes issue status to "status" (no status to get a list of options)');
   console.log('   search    <term>            Find issues');
   console.log('   describe  <id>              Display issue synopsis');
   console.log('   comments  <id> (--reverse)  Display comments on an issue');
@@ -506,7 +321,7 @@ function usage() {
   console.log('   comment   <id> "<message>"  Comment on an issue');
   console.log('   user      <term>            Search for a user');
   console.log('   assign    <id> <user>       Assign issue to a user');
-  console.log('When using gira and when inside a git repository, id is guessed');
+  console.log('');
 }
 
 function transition(issue, id, cb) {
@@ -516,8 +331,9 @@ function transition(issue, id, cb) {
     .send({transition: {id: id}})
     .auth(cfg.user, cfg.password)
     .end(function(res) {
-      if (!res.ok) return console.log(res.statusCode + ' ' +
-        res.body.errorMessages.join('\n'));
+      if (!res.ok) return console.log(
+        res.body.errorMessages.join('\n')
+      );
       if (cb) cb();
     })
   ;
@@ -622,7 +438,7 @@ function formatTable(cols, options) {
         {right: cols[i][j].right}
       ) + ' ';
     }
-    output += options.wrapText ? prettyPrint(col, process.stdout.columns) : truncate(col, process.stdout.columns - 1);
+    output += options.wrapText ? limitWidth(col, 80) : truncate(col, 79);
     if (i < cols.length-1) output += '\n';
   }
 
@@ -687,15 +503,12 @@ function configBasicAuth(cb) {
       dbPath = getDbPath(),
       jillaDir = getJillaDir();
   if (!fs.existsSync(jillaDir)) fs.mkdirSync(jillaDir);
-  askFor(['Internet Proxy (http://user:pwd@host:port)', 'Jira Url', 'Username', 'Password', 'Category', 'Sprint Team Name'], function(answers) {
+  askFor(['Jira Url', 'Username', 'Password'], function(answers) {
     console.log('Good to go!');
     cfg = {
-      proxy   : answers['Internet Proxy (http://user:pwd@host:port)'],
       url     : answers['Jira Url'],
       user    : answers['Username'],
-      password: answers['Password'],
-      category: answers['Category'],
-      sprintTeam:answers['Sprint Team Name']
+      password: answers['Password']
     };
     if (cfg.url[cfg.url.length-1] != '/') cfg.url += '/';
     // TODO: Store password securely
@@ -721,26 +534,12 @@ function field(obj, pathString) {
 
 // Limit the widths of lines in a string
 // Assumes that lines are separated with a single \n newline character
-function prettyPrint(string, len) {
+function limitWidth(string, len) {
   var lines = string.split('\n');
-  len = (typeof len === 'number') ? len : process.stdout.columns;
+  len = (typeof len === 'number') ? len : 80;
   var chars;
   var newLine;
-  var j = 0;
   for (var i = 0; i < lines.length; i++) {
-    if (!lines [i].match (/(\s*)#/)){
-    j = 0;
-    }
-    lines [i] = lines[i].replace (/(\s*)h1\.\s*([^\n]*)/, "$1\033[4;7;31;40m$2\033[0;24;27;37m");
-    lines [i] = lines[i].replace (/(\s*)h2\.\s*([^\n]*)/, "$1 \033[4;7;40m$2\033[0;24;27;37m");
-    lines [i] = lines[i].replace (/(\s*)h3\.\s*([^\n]*)/, "$1  \033[1;4m$2\033[0;21;24m");
-    lines [i] = lines[i].replace (/(\s*)h4\.\s*([^\n]*)/, "$1   \033[4m$2\033[0;24m");
-    lines [i] = lines[i].replace (/(\s*)h5\.\s*([^\n]*)/, function(v) { return "   \033[0m" + v.toUpperCase().substring (3); });
-    lines [i] = lines[i].replace (/(\s*)#\s+([^#\n]*)/, function (v) {return "[" + (++j) + "]" + v.substring (1);});
-    lines [i] = lines[i].replace (/\*([^*]+)\*/, "\033[1m$1\033[0m");
-    lines [i] = lines[i].replace (/^(\s*)--/, "      \u25A0");
-    lines [i] = lines[i].replace (/^(\s*)-/, "\u25A0");
-
     if (lines[i].length > len) {
       chars = lines[i].split('');
       lines[i] = lines[i].slice(0, len - 1);
@@ -770,7 +569,7 @@ function formatComment(comment) {
   var body = field(comment, 'body');
   var user = formatUser(comment.author, true);
   var indentAmount = 4;
-  var formattedComment = indent(prettyPrint(body, process.stdout.columns - indentAmount), indentAmount);
+  var formattedComment = indent(limitWidth(body, 80 - indentAmount), indentAmount);
   return 'Author: ' + user + '\n'
        + 'Date:   ' + new Date(field(comment, 'updated')).toLocaleString() + '\n'
        + '\n'
@@ -780,30 +579,17 @@ function formatComment(comment) {
 
 function indent(text, by) {
   var spaces = createIndent(by);
-  var spaces1 = createIndent(by - 2)
-  var spaces2 = createIndent(by - 3)
   var lines = text.split('\n');
-
   for (var i = 0; i < lines.length; i++) {
-    if (lines [i].match (/^\[[0-9]+\]/)){
-      lines[i] = spaces2 + lines[i];
-    }else if (lines [i].substring (0, 1) === "\u25A0"){
-      lines[i] = spaces1 + lines[i];
-    }else if (!lines [i].match (/^\s*\033.*/)){
-      lines[i] = spaces + lines[i];
-    }
-    lines[i] = "\u2503  " + lines[i];
+    lines[i] = spaces + lines[i];
   }
   return lines.join('\n');
 }
 
-function createIndent(len, chr) {
+function createIndent(len) {
   var indent = '';
-  if (chr == undefined){
-    chr = ' ';
-  }
   while (len--) {
-    indent += chr;
+    indent += ' ';
   }
   return indent;
 }
