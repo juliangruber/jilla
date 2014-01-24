@@ -5,7 +5,7 @@
     "repository": "git://github.com/juliangruber/jilla",
     "dependencies": {
         "superagent-proxy": "~0.3.0",
-        "superagent": "~0.9.5",
+        "superagent": "~0.15.4",
         "span": "~0.0.3",
         "ask-for": "~0.0.2",
         "json-store": "~0.0.1"
