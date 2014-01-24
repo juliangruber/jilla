@@ -11,6 +11,7 @@ if [ "$1" == "start" ] ||
 [ "$1" == "describe" ] ||
 [ "$1" == "comments" ] ||
 [ "$1" == "subtasks" ] ||
+[ "$1" == "status" ] ||
 [ "$1" == "comment" ] ||
 [ "$1" == "assign" ];then
   ARGS="$1 $BRANCH"

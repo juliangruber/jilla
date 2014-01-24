@@ -28,6 +28,10 @@ Sprint Team Name: My Team
 Good to go!
 ```
 
+### gira
+If you use git as a repo and if you name your branches after your issueKeys, you can use gira shell script
+and it will let you use jilla without having to mention each time the issue you are working on.
+
 ### Print usage instructions
 
 ```bash
@@ -47,6 +51,7 @@ Commands:
    reopen    <id>              Reopen issue
    close     <id>              Close issue
    needinfo  <id>              Set issue status to Needs Info
+   status    <id> (status)     Changes issue status to "status" (no status to get a list of options)
    search    <term>            Find issues
    describe  <id>              Display issue synopsis
    comments  <id> (--reverse)  Display comments on an issue
