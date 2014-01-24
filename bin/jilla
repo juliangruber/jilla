@@ -512,13 +512,13 @@ function configBasicAuth(cb) {
       dbPath = getDbPath(),
       jillaDir = getJillaDir();
   if (!fs.existsSync(jillaDir)) fs.mkdirSync(jillaDir);
-  askFor(['Jira Url', 'Username', 'Password','Internet Proxy'], function(answers) {
+  askFor(['Jira Url', 'Username', 'Password','Internet Proxy (leave blank if you don\'t know)'], function(answers) {
     console.log('Good to go!');
     cfg = {
       url     : answers['Jira Url'],
       user    : answers['Username'],
       password: answers['Password'],
-      proxy   : answers['Internet Proxy']
+      proxy   : answers['Internet Proxy (leave blank if you don\'t know)']
     };
     if (cfg.url[cfg.url.length-1] != '/') cfg.url += '/';
     // TODO: Store password securely

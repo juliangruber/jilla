@@ -19,6 +19,7 @@ $ jilla
 JIRA URL: https://jira.atlassian.com/
 Username:
 Password:
+Internet Proxy (leave blank if you don't know):
 Good to go!
 ```
 
