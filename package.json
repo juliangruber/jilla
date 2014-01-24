@@ -4,6 +4,7 @@
     "author": "Julian Gruber <julian@juliangruber.com>",
     "repository": "git://github.com/juliangruber/jilla",
     "dependencies": {
+        "superagent-proxy": "~0.3.0",
         "superagent": "~0.9.5",
         "span": "~0.0.3",
         "ask-for": "~0.0.2",
