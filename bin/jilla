@@ -12,12 +12,16 @@ var request = require('superagent');
 var span = require('span');
 var JSONStore = require('json-store');
 var askFor = require('ask-for');
+require('superagent-proxy')(request);
+
+var proxy = process.env.http_proxy;
 
 var cfg, db;
 
 load(function(_cfg, _db) {
   cfg = _cfg;
   db = _db;
+  proxy = cfg.proxy || proxy;
   var cmd = process.argv[2];
   if (cmd == 'config')    return config();
   if (cmd == 'ls')        return ls();
@@ -39,13 +43,21 @@ load(function(_cfg, _db) {
   usage();
 });
 
+function proxyIfNeeded(request) {
+  if (proxy != undefined && proxy != ""){
+    return request.proxy (proxy);
+  }
+  return request;
+}
+
 function config() {
   configBasicAuth();
 }
 
 function ls() {
-  request
+  proxyIfNeeded (request
     .get(cfg.url+'rest/api/2/search?jql=assignee='+cfg.user+'+AND+status+in+(Open,"In+Progress",Reopened)+order+by+due+ASC,+priority+DESC')
+    )
     .set('Content-Type', 'application/json')
     .auth(cfg.user, cfg.password)
     .end(function(res) {
@@ -58,7 +70,7 @@ function ls() {
         table.push([
           issues[i].key,
           '<'+issues[i].fields.reporter.name+'>',
-          {data: formatPrio(issues[i].fields.priority.name), right: true},
+          {data: formatPrio((issues[i].fields.priority == undefined ? "unknown" : issues[i].fields.priority.name)), right: true},
           issues[i].fields.summary
         ]);
       }
@@ -93,8 +105,9 @@ function stop(issue, logAlso) {
 function log(issue, time) {
   time = Math.floor(span(time)/1000);
   if (time < 60) time = 60;
-  request
+  proxyIfNeeded (request
     .post(cfg.url+'rest/api/2/issue/'+issue+'/worklog')
+    )
     .send({timeSpentSeconds: time})
     .auth(cfg.user, cfg.password)
     .end(function(res) {
@@ -134,8 +147,9 @@ function needInfo(issue) {
 }
 
 function search(term) {
-  request
+  proxyIfNeeded (request
     .get(cfg.url+'rest/api/2/search?jql=summary+~+"'+term+'"+OR+description+~+"'+term+'"+OR+comment+~+"'+term+'"+order+by+due+ASC,+priority+DESC')
+    )
     .set('Content-Type', 'application/json')
     .auth(cfg.user, cfg.password)
     .end(function(res) {
@@ -148,7 +162,7 @@ function search(term) {
         table.push([
           issues[i].key,
           '<'+issues[i].fields.reporter.name+'>',
-          {data: formatPrio(issues[i].fields.priority.name), right: true},
+          {data: formatPrio((issues[i].fields.priority == undefined ? "unknown" : issues[i].fields.priority.name)), right: true},
           issues[i].fields.summary
         ]);
       }
@@ -159,8 +173,9 @@ function search(term) {
 
 function describe(issue) {
   if (!issue) return usage();
-  request
+    proxyIfNeeded (request
     .get(cfg.url+'rest/api/2/issue/'+issue)
+    )
     .auth(cfg.user, cfg.password)
     .end(function(res) {
       if (!res.ok) return console.log(
@@ -191,8 +206,9 @@ function describe(issue) {
 // list can be reversed so that newest are at the top
 function comments(issue, reverse) {
   if (!issue) return usage();
-  request
+  proxyIfNeeded (request
     .get(cfg.url+'rest/api/2/issue/'+issue)
+    )
     .auth(cfg.user, cfg.password)
     .end(function(res) {
       if (!res.ok) return console.log(
@@ -215,8 +231,9 @@ function comments(issue, reverse) {
 // List subtasks of an issue
 function subtasks(issue) {
   if (!issue) return usage();
-  request
+  proxyIfNeeded (request
     .get(cfg.url+'rest/api/2/issue/'+issue)
+    )
     .auth(cfg.user, cfg.password)
     .end(function(res) {
       if (!res.ok) return console.log(
@@ -245,8 +262,9 @@ function comment(issue, messageList) {
 
 // Helper to make POST request to JIRA API with comment
 function commentOn(issue, message) {
-  request
+  proxyIfNeeded (request
     .post(cfg.url+'rest/api/2/issue/'+issue.toUpperCase()+'/comment/')
+    )
     .auth(cfg.user, cfg.password)
     .send({ body: addEscapes(message) })
     .end(function(res) {
@@ -277,8 +295,9 @@ function assign(issue, userFragment) {
         'No user found with fragment, "' + userFragment + '".'
       );
     }
-    request
+    proxyIfNeeded (request
       .put(cfg.url+'rest/api/2/issue/'+issueUpper+'/assignee')
+      )
       .auth(cfg.user, cfg.password)
       .send({ 'name': user.name })
       .end(function(res) {
@@ -315,8 +334,9 @@ function usage() {
 }
 
 function transition(issue, id, cb) {
-  request
+  proxyIfNeeded (request
     .post(cfg.url+'rest/api/2/issue/'+issue+'/transitions')
+    )
     .send({transition: {id: id}})
     .auth(cfg.user, cfg.password)
     .end(function(res) {
@@ -330,8 +350,9 @@ function transition(issue, id, cb) {
 
 // Get a transition ID, given an issue and the transition's name.
 function getTransitionCode(issue, transitionName, success) {
-  request
+  proxyIfNeeded (request
     .get(cfg.url+'rest/api/2/issue/'+issue+'/transitions')
+    )
     .auth(cfg.user, cfg.password)
     .end(function(res) {
       var transitionID;
@@ -351,8 +372,9 @@ function getTransitionCode(issue, transitionName, success) {
 
 // Get all users matching a given fragment of text.
 function searchUsers(userFragment, callback) {
-  request
+  proxyIfNeeded (request
     .get(cfg.url+'rest/api/2/user/search/?username='+userFragment)
+    )
     .auth(cfg.user, cfg.password)
     .end(function(res) {
       var users;
@@ -490,12 +512,13 @@ function configBasicAuth(cb) {
       dbPath = getDbPath(),
       jillaDir = getJillaDir();
   if (!fs.existsSync(jillaDir)) fs.mkdirSync(jillaDir);
-  askFor(['Jira Url', 'Username', 'Password'], function(answers) {
+  askFor(['Jira Url', 'Username', 'Password','Internet Proxy'], function(answers) {
     console.log('Good to go!');
     cfg = {
       url     : answers['Jira Url'],
       user    : answers['Username'],
-      password: answers['Password']
+      password: answers['Password'],
+      proxy   : answers['Internet Proxy']
     };
     if (cfg.url[cfg.url.length-1] != '/') cfg.url += '/';
     // TODO: Store password securely
