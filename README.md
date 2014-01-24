@@ -186,6 +186,7 @@ chmod 700 ~/.jilla
 
 * [juliangruber](https://github.com/juliangruber)
 * [plainview](https://github.com/plainview)
+* [libetl](https://github.com/libetl)
 
 ## License
 
