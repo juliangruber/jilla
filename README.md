@@ -38,6 +38,8 @@ Commands:
    resolve   <id>              Resolve issue
    reopen    <id>              Reopen issue
    close     <id>              Close issue
+   needinfo  <id>              Set issue status to Needs Info
+   status    <id> (status)     Changes issue status to "status" (no status to get a list of options)
    search    <term>            Find issues
    describe  <id>              Display issue synopsis
    comments  <id> (--reverse)  Display comments on an issue
@@ -97,6 +99,20 @@ WDSERVICE-79 <fstock>   ! LessLinter testen
 $ jilla resolve PS-656
 $ jilla close PS-656
 $ jilla reopen PS-656
+```
+
+### Change status of an issue
+
+```bash
+$ jilla status PS-656
+Current Status : 6 Closed
+Statuses available :
+21 Reopen
+$ jilla status PS-656 21
+$ jilla status PS-656
+Current Status : 1 Open
+Statuses available :
+31 Start Progress
 ```
 
 ### Describe an issue
