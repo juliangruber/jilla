@@ -1,13 +1,6 @@
 #!/usr/bin/env node
 
-// Statuses
-var OPEN        = 1;
-var IN_PROGRESS = 3;
-var RESOLVED    = 5;
-var CLOSED      = 6;
-
 var fs = require('fs');
-var readline = require('readline');
 var request = require('superagent');
 var span = require('span');
 var JSONStore = require('json-store');
@@ -23,109 +16,124 @@ load(function(_cfg, _db) {
   db = _db;
   proxy = cfg.proxy || proxy;
   var cmd = process.argv[2];
-  if (cmd == 'config')    return config();
-  if (cmd == 'ls')        return ls();
-  if (cmd == 'start')     return start(process.argv[3]);
-  if (cmd == 'stop')      return stop(process.argv[3], process.argv[4] == '--log');
-  if (cmd == 'log')       return log(process.argv[3], process.argv.splice(4).join(''));
-  if (cmd == 'running')   return running();
-  if (cmd == 'resolve')   return resolve(process.argv[3]);
-  if (cmd == 'reopen')    return reopen(process.argv[3]);
-  if (cmd == 'close')     return close(process.argv[3]);
-  if (cmd == 'needinfo')  return needInfo(process.argv[3]);
-  if (cmd == 'search')    return search(process.argv.splice(3).join(' '));
-  if (cmd == 'describe')  return describe(process.argv[3]);
-  if (cmd == 'comments')  return comments(process.argv[3], process.argv[4] == '--reverse');
-  if (cmd == 'subtasks')  return subtasks(process.argv[3]);
-  if (cmd == 'comment')   return comment(process.argv[3], process.argv.slice(4));
-  if (cmd == 'user')      return user(process.argv.slice(3));
-  if (cmd == 'assign')    return assign(process.argv[3], process.argv.slice(4));
-  if (cmd == 'status')    return setStatus(undefined, new Array (process.argv[3], process.argv[4]));
+  switch (cmd) {
+  case 'config':    return config();
+  case 'ls':        return ls();
+  case 'start':     return start(process.argv[3]);
+  case 'stop':      return stop(process.argv[3], process.argv[4] == '--log');
+  case 'log':       return log(process.argv[3], process.argv.splice(4).join(''));
+  case 'running':   return running();
+  case 'resolve':   return resolve(process.argv[3]);
+  case 'reopen':    return reopen(process.argv[3]);
+  case 'close':     return close(process.argv[3]);
+  case 'needinfo':  return needInfo(process.argv[3]);
+  case 'search':    return search(process.argv.splice(3).join(' '));
+  case 'describe':  return describe(process.argv[3]);
+  case 'comments':  return comments(process.argv[3], process.argv[4] == '--reverse');
+  case 'subtasks':  return subtasks(process.argv[3]);
+  case 'comment':   return comment(process.argv[3], process.argv.slice(4));
+  case 'user':      return user(process.argv.slice(3));
+  case 'assign':    return assign(process.argv[3], process.argv.slice(4));
+  case 'status':    return setStatus(process.argv[3], process.argv[4]);
+  }
   usage();
 });
 
 function proxyIfNeeded(request) {
-  if (proxy != undefined && proxy != "") {
+  if (proxy != null && proxy !== '') {
     return request.proxy(proxy);
   }
   return request;
+}
+
+function GETRequest(url) {
+  return proxyIfNeeded(request.get(url));
+}
+
+function POSTRequest(url) {
+  return proxyIfNeeded(request.post(url));
+}
+
+function PUTRequest(url) {
+  return proxyIfNeeded(request.put(url));
 }
 
 function config() {
   configBasicAuth();
 }
 
-function statusesObject (func, issue, args) {
-  proxyIfNeeded(request
-    .get(cfg.url + 'rest/api/2/' + (issue == undefined ? 'status': 'issue/' + issue + '/transitions'))
-    )
+function statusesObject(issue, func) {
+  // Get the available status transitions for an issue and then pass them to
+  // the provided callback function.
+  GETRequest(cfg.url + 'rest/api/2/' + (issue == null ? 'status': 'issue/' + issue + '/transitions'))
     .set('Content-Type', 'application/json')
     .auth(cfg.user, cfg.password)
     .end(function(res) {
-      if (res.body.transitions) {
-        return func(res.body.transitions, args);
-      }
-      return func(res.body, args);
+      if (res.body.errorMessages)
+        return console.log(res.body.errorMessages.join('\n'));
+      if (res.body.transitions)
+        return func(res.body.transitions);
+      return func(res.body);
     });
 }
 
-function currentStatus (issueKey, func) {
-   proxyIfNeeded (request
-    .get(cfg.url + 'rest/api/2/issue/' + issueKey)
-    )
+function currentStatus(issueKey, func) {
+  // Get the current status of an issue and send it
+  // to the provided callback function.
+  GETRequest(cfg.url + 'rest/api/2/issue/' + issueKey)
     .set('Content-Type', 'application/json')
     .auth(cfg.user, cfg.password)
     .end(function(res) {
       if (res.body.errorMessages) {
-        console.log(res.body.errorMessages.join ('\n'));
+        console.log(res.body.errorMessages.join('\n'));
         return;
       }
-     var formatted = [];
-     formatted.push([res.body.fields.status.id,
-            res.body.fields.status.name]);
-     func(formatTable(formatted));
+      var formatted = [];
+      formatted.push([res.body.fields.status.id,
+                      res.body.fields.status.name]);
+      func(formatTable(formatted));
     });
 }
 
-function setStatus (obj, args) {
-  if (args[0] == undefined) {
-    console.log("Please provide an issue ID");
+function setStatus(issueId, newStatus, availableStatuses) {
+  // Get or set the status of a ticket.
+  // If availableStatuses is not provided then it will be fetched from the
+  // server.
+  var i, status;
+  if (issueId == null) {
+    console.log('Please provide an issue ID');
     return;
   }
-  if (obj == undefined) {
-    statusesObject(setStatus, args[0], args);
+  if (availableStatuses == null) {
+    statusesObject(issueId, setStatus.bind(null, issueId, newStatus));
   } else {
-    var newStatus = -1;
-    for (var index in obj) {
-      if ((obj[index].name == args[1] ||
-          obj[index].id == args[1]) &&
-          obj[index].id != undefined) {
-        newStatus = obj[index].id;
+    var newStatusId = -1;
+    // Search for the new status in the available statuses to make sure
+    // it's a valid transition to make for this issue.
+    for (i = 0; status = availableStatuses[i]; i++) {
+      if (status.id != null && (status.name == newStatus || status.id == newStatus)) {
+        newStatusId = status.id;
+        break;
       }
     }
-    if (newStatus == -1) {
-      currentStatus(args[0], function (currStatus) {
-        console.log("Current Status : " + currStatus);
-        console.log("Statuses available :");
-        for (var iRow in obj) {
-          var row = obj[iRow];
-          var formatted = [];
-          formatted.push(
-            [row.id,
-             row.name]);
-          console.log(formatTable(formatted));
-        }
+    if (newStatusId == -1) {
+      currentStatus(issueId, function (currStatus) {
+        console.log('Current Status : ' + currStatus);
+        console.log('Statuses available :');
+        var formatted = [];
+        availableStatuses.forEach(function(status) {
+          formatted.push([status.id, status.name]);
+        });
+        console.log(formatTable(formatted));
       });
     } else {
-      transition(args[0], newStatus);
+      transition(issueId, newStatusId);
     }
   }
 }
 
 function ls() {
-  proxyIfNeeded (request
-    .get(cfg.url+'rest/api/2/search?jql=assignee='+cfg.user+'+AND+status+in+(Open,"In+Progress",Reopened)+order+by+due+ASC,+priority+DESC')
-    )
+  GETRequest(cfg.url+'rest/api/2/search?jql=assignee='+cfg.user+'+AND+status+in+(Open,"In+Progress",Reopened)+order+by+due+ASC,+priority+DESC')
     .set('Content-Type', 'application/json')
     .auth(cfg.user, cfg.password)
     .end(function(res) {
@@ -138,7 +146,7 @@ function ls() {
         table.push([
           issues[i].key,
           '<'+issues[i].fields.reporter.name+'>',
-          {data: formatPrio((issues[i].fields.priority == undefined ? "unknown" : issues[i].fields.priority.name)), right: true},
+          {data: formatPrio((issues[i].fields.priority == null ? 'unknown' : issues[i].fields.priority.name)), right: true},
           issues[i].fields.summary
         ]);
       }
@@ -173,9 +181,7 @@ function stop(issue, logAlso) {
 function log(issue, time) {
   time = Math.floor(span(time)/1000);
   if (time < 60) time = 60;
-  proxyIfNeeded (request
-    .post(cfg.url+'rest/api/2/issue/'+issue+'/worklog')
-    )
+  POSTRequest(cfg.url+'rest/api/2/issue/'+issue+'/worklog')
     .send({timeSpentSeconds: time})
     .auth(cfg.user, cfg.password)
     .end(function(res) {
@@ -215,9 +221,7 @@ function needInfo(issue) {
 }
 
 function search(term) {
-  proxyIfNeeded (request
-    .get(cfg.url+'rest/api/2/search?jql=summary+~+"'+term+'"+OR+description+~+"'+term+'"+OR+comment+~+"'+term+'"+order+by+due+ASC,+priority+DESC')
-    )
+  GETRequest(cfg.url+'rest/api/2/search?jql=summary+~+"'+term+'"+OR+description+~+"'+term+'"+OR+comment+~+"'+term+'"+order+by+due+ASC,+priority+DESC')
     .set('Content-Type', 'application/json')
     .auth(cfg.user, cfg.password)
     .end(function(res) {
@@ -230,7 +234,7 @@ function search(term) {
         table.push([
           issues[i].key,
           '<'+issues[i].fields.reporter.name+'>',
-          {data: formatPrio((issues[i].fields.priority == undefined ? "unknown" : issues[i].fields.priority.name)), right: true},
+          {data: formatPrio((issues[i].fields.priority == null ? 'unknown' : issues[i].fields.priority.name)), right: true},
           issues[i].fields.summary
         ]);
       }
@@ -241,9 +245,7 @@ function search(term) {
 
 function describe(issue) {
   if (!issue) return usage();
-    proxyIfNeeded (request
-    .get(cfg.url+'rest/api/2/issue/'+issue)
-    )
+  GETRequest(cfg.url+'rest/api/2/issue/'+issue)
     .auth(cfg.user, cfg.password)
     .end(function(res) {
       if (!res.ok) return console.log(
@@ -274,9 +276,7 @@ function describe(issue) {
 // list can be reversed so that newest are at the top
 function comments(issue, reverse) {
   if (!issue) return usage();
-  proxyIfNeeded (request
-    .get(cfg.url+'rest/api/2/issue/'+issue)
-    )
+  GETRequest(cfg.url+'rest/api/2/issue/'+issue)
     .auth(cfg.user, cfg.password)
     .end(function(res) {
       if (!res.ok) return console.log(
@@ -299,9 +299,7 @@ function comments(issue, reverse) {
 // List subtasks of an issue
 function subtasks(issue) {
   if (!issue) return usage();
-  proxyIfNeeded (request
-    .get(cfg.url+'rest/api/2/issue/'+issue)
-    )
+  GETRequest(cfg.url+'rest/api/2/issue/'+issue)
     .auth(cfg.user, cfg.password)
     .end(function(res) {
       if (!res.ok) return console.log(
@@ -330,9 +328,7 @@ function comment(issue, messageList) {
 
 // Helper to make POST request to JIRA API with comment
 function commentOn(issue, message) {
-  proxyIfNeeded (request
-    .post(cfg.url+'rest/api/2/issue/'+issue.toUpperCase()+'/comment/')
-    )
+  POSTRequest(cfg.url+'rest/api/2/issue/'+issue.toUpperCase()+'/comment/')
     .auth(cfg.user, cfg.password)
     .send({ body: addEscapes(message) })
     .end(function(res) {
@@ -363,9 +359,7 @@ function assign(issue, userFragment) {
         'No user found with fragment, "' + userFragment + '".'
       );
     }
-    proxyIfNeeded (request
-      .put(cfg.url+'rest/api/2/issue/'+issueUpper+'/assignee')
-      )
+    PUTRequest(cfg.url+'rest/api/2/issue/'+issueUpper+'/assignee')
       .auth(cfg.user, cfg.password)
       .send({ 'name': user.name })
       .end(function(res) {
@@ -403,9 +397,7 @@ function usage() {
 }
 
 function transition(issue, id, cb) {
-  proxyIfNeeded (request
-    .post(cfg.url+'rest/api/2/issue/'+issue+'/transitions')
-    )
+  POSTRequest(cfg.url+'rest/api/2/issue/'+issue+'/transitions')
     .send({transition: {id: id}})
     .auth(cfg.user, cfg.password)
     .end(function(res) {
@@ -419,9 +411,7 @@ function transition(issue, id, cb) {
 
 // Get a transition ID, given an issue and the transition's name.
 function getTransitionCode(issue, transitionName, success) {
-  proxyIfNeeded (request
-    .get(cfg.url+'rest/api/2/issue/'+issue+'/transitions')
-    )
+  GETRequest(cfg.url+'rest/api/2/issue/'+issue+'/transitions')
     .auth(cfg.user, cfg.password)
     .end(function(res) {
       var transitionID;
@@ -441,9 +431,7 @@ function getTransitionCode(issue, transitionName, success) {
 
 // Get all users matching a given fragment of text.
 function searchUsers(userFragment, callback) {
-  proxyIfNeeded (request
-    .get(cfg.url+'rest/api/2/user/search/?username='+userFragment)
-    )
+  GETRequest(cfg.url+'rest/api/2/user/search/?username='+userFragment)
     .auth(cfg.user, cfg.password)
     .end(function(res) {
       var users;
@@ -617,7 +605,6 @@ function limitWidth(string, len) {
   var lines = string.split('\n');
   len = (typeof len === 'number') ? len : 80;
   var chars;
-  var newLine;
   for (var i = 0; i < lines.length; i++) {
     if (lines[i].length > len) {
       chars = lines[i].split('');

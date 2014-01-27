@@ -3,4 +3,6 @@
 , "newcap": false
 , "eqnull": true
 , "laxbreak": true
+, "undef": true
+, "unused": true
 }
