@@ -40,18 +40,86 @@ load(function(_cfg, _db) {
   if (cmd == 'comment')   return comment(process.argv[3], process.argv.slice(4));
   if (cmd == 'user')      return user(process.argv.slice(3));
   if (cmd == 'assign')    return assign(process.argv[3], process.argv.slice(4));
+  if (cmd == 'status')    return setStatus(undefined, new Array (process.argv[3], process.argv[4]));
   usage();
 });
 
 function proxyIfNeeded(request) {
-  if (proxy != undefined && proxy != ""){
-    return request.proxy (proxy);
+  if (proxy != undefined && proxy != "") {
+    return request.proxy(proxy);
   }
   return request;
 }
 
 function config() {
   configBasicAuth();
+}
+
+function statusesObject (func, issue, args) {
+  proxyIfNeeded(request
+    .get(cfg.url + 'rest/api/2/' + (issue == undefined ? 'status': 'issue/' + issue + '/transitions'))
+    )
+    .set('Content-Type', 'application/json')
+    .auth(cfg.user, cfg.password)
+    .end(function(res) {
+      if (res.body.transitions) {
+        return func(res.body.transitions, args);
+      }
+      return func(res.body, args);
+    });
+}
+
+function currentStatus (issueKey, func) {
+   proxyIfNeeded (request
+    .get(cfg.url + 'rest/api/2/issue/' + issueKey)
+    )
+    .set('Content-Type', 'application/json')
+    .auth(cfg.user, cfg.password)
+    .end(function(res) {
+      if (res.body.errorMessages) {
+        console.log(res.body.errorMessages.join ('\n'));
+        return;
+      }
+     var formatted = [];
+     formatted.push([res.body.fields.status.id,
+            res.body.fields.status.name]);
+     func(formatTable(formatted));
+    });
+}
+
+function setStatus (obj, args) {
+  if (args[0] == undefined) {
+    console.log("Please provide an issue ID");
+    return;
+  }
+  if (obj == undefined) {
+    statusesObject(setStatus, args[0], args);
+  } else {
+    var newStatus = -1;
+    for (var index in obj) {
+      if ((obj[index].name == args[1] ||
+          obj[index].id == args[1]) &&
+          obj[index].id != undefined) {
+        newStatus = obj[index].id;
+      }
+    }
+    if (newStatus == -1) {
+      currentStatus(args[0], function (currStatus) {
+        console.log("Current Status : " + currStatus);
+        console.log("Statuses available :");
+        for (var iRow in obj) {
+          var row = obj[iRow];
+          var formatted = [];
+          formatted.push(
+            [row.id,
+             row.name]);
+          console.log(formatTable(formatted));
+        }
+      });
+    } else {
+      transition(args[0], newStatus);
+    }
+  }
 }
 
 function ls() {
@@ -323,6 +391,7 @@ function usage() {
   console.log('   reopen    <id>              Reopen issue');
   console.log('   close     <id>              Close issue');
   console.log('   needinfo  <id>              Set issue status to Needs Info');
+  console.log('   status    <id> (status)     Changes issue status to "status" (no status to get a list of options)');
   console.log('   search    <term>            Find issues');
   console.log('   describe  <id>              Display issue synopsis');
   console.log('   comments  <id> (--reverse)  Display comments on an issue');
