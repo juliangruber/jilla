@@ -132,8 +132,15 @@ function setStatus(issueId, newStatus, availableStatuses) {
   }
 }
 
-function ls() {
-  GETRequest(cfg.url+'rest/api/2/search?jql=assignee='+cfg.user+'+AND+status+in+(Open,"In+Progress",Reopened)+order+by+due+ASC,+priority+DESC')
+function ls(running) {
+  var statusIn;
+  if (running == null) {
+    statusIn = 'Open,"In+Progress",Reopened';
+  } else {
+    statusIn = '"In+Progress"';
+  }
+  
+  GETRequest(cfg.url+'rest/api/2/search?jql=assignee='+cfg.user+'+AND+status+in+('+statusIn+')+order+by+due+ASC,+priority+DESC')
     .set('Content-Type', 'application/json')
     .auth(cfg.user, cfg.password)
     .end(function(res) {
