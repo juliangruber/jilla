@@ -18,7 +18,7 @@ load(function(_cfg, _db) {
   var cmd = process.argv[2];
   switch (cmd) {
   case 'config':    return config();
-  case 'ls':        return ls();
+  case 'ls':        return ls(process.argv[3]);
   case 'start':     return start(process.argv[3]);
   case 'stop':      return stop(process.argv[3], process.argv[4] == '--log');
   case 'log':       return log(process.argv[3], process.argv.splice(4).join(''));
