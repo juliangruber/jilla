@@ -31,6 +31,7 @@ usage: jilla <command> [<args>]
 
 Commands:
    ls                          List open issues
+   ls running                  List running issues - open, re-opened, etc
    start     <id>              Start working on an issue
    stop      <id> (--log)      Stop working on an issue (and log time)
    log       <id> <time>       Log work
